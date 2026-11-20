@@ -16,7 +16,8 @@ Diese Datei beschreibt, wie Claude die Buchhaltung von Elektrotechnik Labertal (
      Netto/Steuer je Position: `net = round(gross/(1+vat/100),2)`, `tax = gross-net`.
    - **Unsicher:** Status `claude` lassen, `data.question` mit einer kurzen Frage an Abdullah setzen und im Bericht nennen.
    Kategorien (Schlüssel): Fuel (Tanken), MaterialsGoods (Material), SmallParts (Werkzeug), MotorVehicle (Kfz-Reparatur/Wäsche), MotorVehicleInsurance, MotorVehicleTax, EntertainmentExpenses (Bewirtung), OfficeSupplies, LicencesConcessions (Software, Lexware/Haufe), Telecommunication, InsurancesContributions, AssociationContributions, Seminar, Advertising, WasteDisposalExpenses, OtherExpenditure, PrivateWithdrawal (privat, 0 %), VatPrepayments (Finanzamt USt). Für bekannte Firmen die bisherige Kategorie nehmen (`select data->>'vendor', data->'items'->0->>'cat' ...`).
-2. **Doppelte suchen:** gleiche Firma + gleiche Belegnummer, oder gleicher Betrag + gleiches Datum. Gleicher `files[].hash` = sicher doppelt. Nicht selbst löschen, sondern im Bericht nennen (Ausnahme: exakt gleiche Datei-Hash bei Status `claude` → löschen).
+2. **Doppelte suchen – nur melden, wenn 100 % sicher:** Kandidaten sind gleiche Firma + gleiche Belegnummer, gleicher Betrag + gleiches Datum oder gleicher `files[].hash`. Ein Kandidat gilt erst als doppelt, wenn du **beide Belegbilder geöffnet** und verglichen hast: **Tankstelle/Firma, Datum, Uhrzeit, Betrag (und Belegnummer)** stimmen alle überein. Dann im Bericht nennen (Firma, Datum, Uhrzeit, Betrag), damit Abdullah nachsehen kann. Stimmt etwas nicht überein (z. B. andere Uhrzeit), ist es **kein** Doppel – nicht melden. Belege mit Status `pruefen` (alte Lexware-Entwürfe) zählen steuerlich nicht und werden nur als Info genannt.
+   **Nie selbst löschen** – Abdullah löscht selbst oder sagt ausdrücklich, dass Claude löschen soll. (Einzige Ausnahme: exakt gleiche Datei-Hash bei einem neuen Beleg im Status `claude` → diesen löschen.)
 3. **Plausibilität:** MwSt.-Satz passt zur Kategorie (Versicherungen 0 %, Kraftstoff 19 %), Beträge > 0, Datum nicht in der Zukunft, Tankbelege ohne Kfz-Bezug, Bewirtung ohne Notiz (Anlass/Personen fehlen).
 4. **Offene Posten:** überfällige Rechnungen (`sales`, status `offen`, `dueDate` < heute), offene Ausgaben, Angebote ohne Antwort.
 5. **Fristen:** Umsatzsteuer-Voranmeldung des Vormonats bis zum 10. – gemeldet, wenn `ustva/<JJJJ-MM>` existiert. Ist-Versteuerung: Umsatz bei Zahlung, Vorsteuer nach Belegdatum.
@@ -26,5 +27,6 @@ Diese Datei beschreibt, wie Claude die Buchhaltung von Elektrotechnik Labertal (
 
 ## Regeln
 - Festgeschriebene Rechnungen (`sales` mit `finalizedAt`) nie ändern (GoBD).
-- Nichts löschen außer exakt doppelten Dateien im Status `claude`.
+- Nichts löschen außer exakt doppelten Dateien im Status `claude` – oder wenn Abdullah es ausdrücklich verlangt.
+- Nur melden, was sicher ist; Vermutungen als Frage formulieren, nicht als „bitte korrigieren“.
 - Schreiben per `insert ... on conflict (col,id) do update set data = excluded.data` bzw. `update docs set data = data || '{...}'::jsonb where col='vouchers' and id='...'`.
