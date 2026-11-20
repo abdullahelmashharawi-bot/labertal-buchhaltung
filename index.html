@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f63c6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Labertal">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Labertal Buchhaltung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: feste Seitenleiste links (auf dem Handy unten), Arbeitsfläche rechts; Editoren als Blatt von rechts */
+:root{
+  --bg:#f2f4f8; --panel:#ffffff; --ink:#151c28; --muted:#5b6677; --line:#e1e6ee;
+  --accent:#1f63c6; --accent-ink:#ffffff; --amber:#e9a12e;
+  --good:#1f8a4c; --warn:#b86e00; --bad:#c23b31; --chip:#eef2f7;
+  --display:"Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --radius:16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161e; --panel:#19202b; --ink:#e6ebf2; --muted:#97a3b4; --line:#2a3443;
+    --accent:#5a9bf0; --accent-ink:#0b1220; --amber:#f0b44f;
+    --good:#4cc07f; --warn:#e3a33c; --bad:#ef6a5f; --chip:#232c39; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11161e; --panel:#19202b; --ink:#e6ebf2; --muted:#97a3b4; --line:#2a3443;
+  --accent:#5a9bf0; --accent-ink:#0b1220; --amber:#f0b44f;
+  --good:#4cc07f; --warn:#e3a33c; --bad:#ef6a5f; --chip:#232c39; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0}
+h1{font-size:28px} h2{font-size:21px} h3{font-size:17px}
+.num,td.num,th.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+a{color:var(--accent)}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100%}
+nav.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
+.brand img{width:40px;height:40px;object-fit:contain}
+.brand b{font-family:var(--display);font-size:18px;line-height:1.1}
+.brand small{display:block;color:var(--muted);font-size:12px}
+nav.side a{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:500}
+nav.side a:hover{background:var(--chip)}
+nav.side a.on{background:var(--accent);color:var(--accent-ink)}
+nav.side a .badge{background:var(--amber);color:#1b1300;border-radius:99px;font-size:12px;padding:0 7px;font-weight:600}
+nav.side .spacer{flex:1}
+main{padding:calc(24px + env(safe-area-inset-top)) clamp(16px,3vw,36px) 80px;max-width:1240px;width:100%}
+.head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.head h1{flex:1}
+.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.grid{display:grid;gap:14px}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.tile .lbl{color:var(--muted);font-size:13px}
+.tile .big{font-family:var(--display);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .sub{font-size:13px}
+.tile a{text-decoration:none;color:inherit;display:block}
+.tbl-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--panel)}
+tbody tr:last-child td{border-bottom:0}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--chip)}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--chip);color:var(--muted);white-space:nowrap}
+.chip.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.chip.info{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.muted{color:var(--muted)} .small{font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%}
+textarea{min-height:64px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.f > span{font-weight:500}
+.form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.form .wide{grid-column:1/-1}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);padding:22px;text-align:center;background:var(--panel);cursor:pointer}
+.drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}
+.drop b{font-family:var(--display);font-size:19px}
+/* Sheet (Editor) */
+.sheet-bg{position:fixed;inset:0;background:rgba(10,15,25,.45);display:none;z-index:20}
+.sheet-bg.open{display:block}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(980px,100%);background:var(--bg);z-index:21;transform:translateX(100%);transition:transform .2s;display:flex;flex-direction:column;visibility:hidden}
+.sheet.open{transform:none;visibility:visible;box-shadow:-10px 0 30px rgba(0,0,0,.2)}
+@media (prefers-reduced-motion: reduce){.sheet{transition:none}}
+.sheet-head{display:flex;gap:10px;align-items:center;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheet-head h2{flex:1}
+.sheet-body{overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px;flex:1}
+.sheet-body>*{flex:none}
+.items td{padding:6px 6px}
+.items input,.items select{padding:6px 8px}
+.items .desc{min-width:220px}
+.totals{display:grid;grid-template-columns:auto auto;gap:4px 24px;justify-content:end;font-variant-numeric:tabular-nums}
+.totals .g{font-weight:700;font-size:17px}
+.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.preview{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);min-height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.preview img,.preview canvas{max-width:100%;height:auto;display:block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;z-index:40;display:none;max-width:90vw}
+.toast.show{display:block}
+.note{border-left:4px solid var(--amber);background:color-mix(in srgb,var(--amber) 10%,var(--panel));padding:10px 14px;border-radius:6px}
+.note.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.kz{font-family:var(--display);font-weight:700;color:var(--accent)}
+.bar-chart{width:100%;height:auto}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.loading{padding:60px;text-align:center;color:var(--muted)}
+.copy{cursor:pointer;border-bottom:1px dashed var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* ---- App-Oberfläche ---- */
+.card{box-shadow:0 1px 2px rgba(20,30,50,.04)}
+.btn{border-radius:12px;min-height:40px}
+.btn.big{min-height:54px;font-size:17px;padding:12px 20px;border-radius:14px;justify-content:center}
+.side-cta{margin:4px 4px 14px;justify-content:center}
+.hello{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.hello h1{font-size:30px}
+.hello .muted{font-size:14px}
+.hero{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.hero button{font:inherit;border:0;border-radius:var(--radius);padding:18px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:10px;min-height:118px;color:var(--ink);background:var(--panel);border:1px solid var(--line)}
+.hero button b{font-family:var(--display);font-size:21px;font-weight:600;line-height:1.1}
+.hero button span{font-size:13px;color:var(--muted)}
+.hero button.main{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,#0b2a66));color:#fff;border:0}
+.hero button.main span{color:rgba(255,255,255,.85)}
+.hero svg{width:30px;height:30px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;text-decoration:none;color:inherit;display:block}
+.stat .lbl{font-size:13px;color:var(--muted)}
+.stat .val{font-family:var(--display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px}
+.sec h2{font-size:20px}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.li{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;text-decoration:none;color:inherit}
+.li:last-child{border-bottom:0}
+.li:hover{background:var(--chip)}
+.li .t{font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .s{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .a{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.li .a .chip{margin-top:3px}
+.li > div{min-width:0}
+.ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--chip);color:var(--muted);flex:none;overflow:hidden}
+.ic svg{width:22px;height:22px}
+.ic img{width:100%;height:100%;object-fit:cover}
+.ic.fuel{background:#fff1dc;color:#b46a00} .ic.mat{background:#e6efff;color:#1f63c6} .ic.tool{background:#ece8ff;color:#5b44c9}
+.ic.car{background:#e3f5ec;color:#1f8a4c} .ic.food{background:#ffe8e6;color:#c23b31} .ic.soft{background:#e6f6fb;color:#0f7a99}
+.ic.tax{background:#f1f1f1;color:#555} .ic.inc{background:#e3f5ec;color:#1f8a4c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ic{filter:saturate(.9) brightness(.85)}}
+.todo{display:flex;flex-direction:column;gap:8px}
+.todo a{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:12px;padding:11px 14px;text-decoration:none;color:inherit}
+.todo a.bad{border-left-color:var(--bad)} .todo a.info{border-left-color:var(--accent)}
+.todo a b{font-weight:600}
+.cap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:6px 0}
+.cap .photo{width:100%;max-width:420px;border-radius:var(--radius);overflow:hidden;background:var(--panel);border:1px solid var(--line);min-height:160px;display:grid;place-items:center}
+.cap .photo img,.cap .photo canvas{width:100%;display:block}
+.result{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.result .top{display:flex;gap:14px;align-items:center}
+.result .vendor{font-family:var(--display);font-size:24px;font-weight:600;line-height:1.1}
+.result .amount{font-family:var(--display);font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.facts div{background:var(--bg);border-radius:12px;padding:9px 12px}
+.facts small{display:block;color:var(--muted);font-size:12px}
+.facts b{font-weight:600}
+.catpick{display:flex;gap:8px;flex-wrap:wrap}
+.catpick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:6px 12px;cursor:pointer}
+.catpick button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.morelist{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.morelist a{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-decoration:none;color:inherit}
+.morelist a b{display:block;font-family:var(--display);font-size:19px;font-weight:600}
+.morelist a span{font-size:13px;color:var(--muted)}
+#tabbar{display:none}
+.todo a svg,.btn svg{width:20px;height:20px;flex:none}
+.todo a svg{color:var(--muted)}
+.ic svg{width:22px;height:22px}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  nav.side{display:none}
+  #tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--panel);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  #tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--muted);text-decoration:none;padding:4px 0;position:relative}
+  #tabbar a svg{width:24px;height:24px}
+  #tabbar a.on{color:var(--accent);font-weight:600}
+  #tabbar a.fab{color:#fff}
+  #tabbar a.fab i{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--accent);margin-top:-26px;box-shadow:0 6px 16px rgba(31,99,198,.35);border:4px solid var(--panel)}
+  #tabbar a.fab span{color:var(--accent);font-weight:600}
+  #tabbar .dot{position:absolute;top:0;right:22%;background:var(--amber);color:#1b1300;border-radius:99px;font-size:10px;padding:0 5px;font-weight:700}
+  .split{grid-template-columns:1fr}
+  main{padding:18px 14px 110px}
+  .hero{grid-template-columns:1fr 1fr}
+  .hero button.main{grid-column:1/-1;min-height:100px;flex-direction:row;align-items:center}
+  .hero button.main svg{width:40px;height:40px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat .val{font-size:22px}
+  .head h1{font-size:26px}
+  .head{gap:8px}
+  .sheet-head{padding:10px 14px}
+  .sheet-body{padding:14px}
+  .toast{bottom:96px}
+  .hide-m{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" id="nav"></nav>
+  <main id="view"><div class="loading"><span class="spin"></span> Daten werden geladen …</div></main>
+</div>
+<nav id="tabbar" aria-label="Hauptmenü"></nav>
+<div class="sheet-bg" id="sheetBg"></div>
+<section class="sheet" id="sheet" aria-modal="true" role="dialog"></section>
+<div class="toast" id="toast" role="status"></div>
+<input type="file" id="filePick" multiple accept="image/*,application/pdf,.xml" hidden>
+<input type="file" id="camPick" accept="image/*" capture="environment" hidden>
+<input type="file" id="folderPick" webkitdirectory multiple hidden>
+<input type="file" id="csvPick" accept=".csv,text/csv" hidden>
+<input type="file" id="logoPick" accept="image/png,image/jpeg" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+"use strict";
+/* ===================== Grundlagen ===================== */
+const CATS = {"Revenues":{"label":"Einnahmen aus Leistungen","group":"einnahme","kz":"112","skr":4400},"Services":{"label":"Einnahmen aus Leistungen","group":"einnahme","kz":"112","skr":4400,"alias":"Revenues"},"RevenuesRC":{"label":"Einnahmen §13b (Reverse Charge)","group":"einnahme","kz":"103","skr":4337},"OtherIncomeTaxFree":{"label":"Sonstige Einnahmen ohne USt (z. B. Cashback)","group":"einnahme","kz":"103","skr":4830},"MaterialsGoods":{"label":"Material & Waren","group":"ausgabe","kz":"100","skr":5200},"PurchasedMaterials":{"label":"Material (Roh-/Hilfsstoffe)","group":"ausgabe","kz":"100","skr":5100},"Subcontractor":{"label":"Fremdleistungen / Subunternehmer","group":"ausgabe","kz":"110","skr":5900},"SmallParts":{"label":"Werkzeuge & Kleingeräte","group":"ausgabe","kz":"183","skr":6845},"OfficeSupplies":{"label":"Bürobedarf","group":"ausgabe","kz":"229","skr":6815},"Fuel":{"label":"Tanken / Kraftstoff","group":"ausgabe","kz":"146","skr":6530},"MotorVehicle":{"label":"Fahrzeugkosten (Reparatur, Wartung, Wäsche)","group":"ausgabe","kz":"146","skr":6500},"MotorVehicleInsurance":{"label":"Kfz-Versicherung","group":"ausgabe","kz":"145","skr":6520},"MotorVehicleTax":{"label":"Kfz-Steuer","group":"ausgabe","kz":"145","skr":7685},"InsurancesContributions":{"label":"Versicherungen (betrieblich)","group":"ausgabe","kz":"223","skr":6400},"AssociationContributions":{"label":"Beiträge (Kammer, Verbände)","group":"ausgabe","kz":"223","skr":6420},"LicencesConcessions":{"label":"Software & Lizenzen","group":"ausgabe","kz":"183","skr":6837},"Seminar":{"label":"Fortbildung / Seminare","group":"ausgabe","kz":"281","skr":6821},"TrainingCosts":{"label":"Fortbildung / Seminare","group":"ausgabe","kz":"281","skr":6821,"alias":"Seminar"},"Advertising":{"label":"Werbung","group":"ausgabe","kz":"224","skr":6600},"EntertainmentExpenses":{"label":"Bewirtung (70 % abziehbar)","group":"ausgabe","kz":"bewirtung","skr":6640},"NonDeductibleEntertainmentExpenses":{"label":"Bewirtung (70 % abziehbar)","group":"ausgabe","kz":"bewirtung","skr":6640,"alias":"EntertainmentExpenses"},"WasteDisposalExpenses":{"label":"Entsorgung","group":"ausgabe","kz":"226","skr":6859},"Telecommunication":{"label":"Telefon & Internet","group":"ausgabe","kz":"280","skr":6805},"Rent":{"label":"Miete / Lager","group":"ausgabe","kz":"150","skr":6310},"TaxAdvisor":{"label":"Steuerberatung / Buchhaltung","group":"ausgabe","kz":"194","skr":6825},"AccountCreditCardFee":{"label":"Bank- & Kontogebühren","group":"ausgabe","kz":"183","skr":6855},"OtherExpenditure":{"label":"Sonstige Ausgaben","group":"ausgabe","kz":"183","skr":6300},"VatPrepayments":{"label":"Umsatzsteuer an/vom Finanzamt","group":"steuer","kz":"186","skr":3820},"VatPreviousYear":{"label":"Umsatzsteuer Vorjahr an Finanzamt","group":"steuer","kz":"186","skr":3841},"PrivateWithdrawal":{"label":"Privatentnahme","group":"privat","kz":"122","skr":2100},"PrivateDeposit":{"label":"Privateinlage","group":"privat","kz":"123","skr":2180},"PrivateHealthInsurance":{"label":"Kranken-/Pflegeversicherung (privat)","group":"neutral","kz":"","skr":3740},"AssetPurchase":{"label":"Anlagegut-Kauf (wird abgeschrieben)","group":"anlage","kz":"","skr":520},"MotorVehicleAsset":{"label":"Fahrzeugkauf (Anlage)","group":"anlage","kz":"","skr":540},"Truck":{"label":"Fahrzeugkauf (Anlage)","group":"anlage","kz":"","skr":540,"alias":"MotorVehicleAsset"},"Transit":{"label":"Durchlaufender Posten / Umbuchung","group":"neutral","kz":"","skr":1360}};
+const CAT_GROUPS = [["ausgabe","Ausgaben"],["einnahme","Einnahmen"],["steuer","Steuer / Finanzamt"],["privat","Privat"],["anlage","Anlagen"],["neutral","Neutral"]];
+const canon = c => (CATS[c] && CATS[c].alias) || c;
+const catLabel = c => (CATS[c] ? CATS[c].label : (c || "–"));
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const unent = s => { const t = document.createElement("textarea"); t.innerHTML = s ?? ""; return t.value; };
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const fmtNum = (n, d = 2) => Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+const eur = n => fmtNum(n) + " €";
+const fmtDate = s => s ? s.slice(8, 10) + "." + s.slice(5, 7) + "." + s.slice(0, 4) : "–";
+const todayISO = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const parseNum = s => { if (typeof s === "number") return s; s = String(s ?? "").trim().replace(/\s|€/g, ""); if (!s) return 0; if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); const n = parseFloat(s); return isNaN(n) ? 0 : n; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function toast(msg, ms = 3200) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms); }
+
+/* ===================== Zustand & Datenbank ===================== */
+const S = { company: null, contacts: new Map(), sales: new Map(), vouchers: new Map(), bank: new Map(), assets: new Map(), ustva: new Map(), loaded: new Set(), ok: false, readOnly: false };
+const UI = { sheet: null, salesTab: "alle", vTab: "alle", bankTab: "offen", taxYear: new Date().getFullYear(), taxMonth: null, search: "" };
+let db = null, assets = null, sample = null, downloads = null;
+const COLS = ["contacts", "sales", "vouchers", "bank", "assets", "ustva", "trips"];
+S.trips = new Map(); S.gh = null; S.check = null;
+const SUPA_URL = "https://skhgixekbfnfctkbxjrr.supabase.co", SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNraGdpeGVrYmZuZmN0a2J4anJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNzI3MTksImV4cCI6MjExMDc0ODcxOX0.ApTigCTMhzpDCnqUwVeChNJ2Y7pbppXfxgBJCfQjvfI";
+const GH_REPO_DEFAULT = "abdullahelmashharawi-bot/labertal-belege";
+let supa = null, session = null;
+
+/* ---- Service Worker: App offline + Belegbilder aus GitHub ---- */
+async function setupSW() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    await navigator.serviceWorker.register("sw.js");
+    if (!navigator.serviceWorker.controller) await Promise.race([new Promise(r => navigator.serviceWorker.addEventListener("controllerchange", r, { once: true })), new Promise(r => setTimeout(r, 4000))]);
+  } catch (e) { console.warn("SW", e); }
+}
+function postSW() { const c = navigator.serviceWorker?.controller; if (c && S.gh?.token) c.postMessage({ type: "gh", token: S.gh.token, repo: S.gh.repo || GH_REPO_DEFAULT }); }
+async function cacheBlob(id, blob) { try { const c = await caches.open("lb-blobs"); await c.put(new Request("_blob/" + id), new Response(blob, { headers: { "Content-Type": blob.type || "application/octet-stream" } })); } catch (e) { } }
+
+/* ---- Datenbank-Adapter: gleiche Schnittstelle wie vorher, Daten in Supabase ---- */
+function makeDb() {
+  const store = new Map(); const subs = new Set(); let loaded = false;
+  const notify = () => { for (const f of subs) try { f(); } catch (e) { console.warn(e); } };
+  async function loadAll() {
+    const all = []; for (let from = 0; ; from += 1000) { const { data, error } = await supa.from("docs").select("col,id,data").range(from, from + 999); if (error) throw error; all.push(...data); if (data.length < 1000) break; }
+    store.clear(); for (const r of all) store.set(r.col + "/" + r.id, r.data); loaded = true; notify();
+  }
+  supa.channel("docs-live").on("postgres_changes", { event: "*", schema: "public", table: "docs" }, p => {
+    if (p.eventType === "DELETE") { if (p.old?.col) store.delete(p.old.col + "/" + p.old.id); else { loadAll(); return; } }
+    else if (p.new?.col) store.set(p.new.col + "/" + p.new.id, p.new.data); notify();
+  }).subscribe();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadAll().catch(() => { }); });
+  const err = e => ({ code: /fetch|network/i.test(e?.message || "") ? "unavailable" : "invalid_argument", message: e?.message || String(e) });
+  function doc(path) {
+    const i = path.indexOf("/"); const col = path.slice(0, i), id = path.slice(i + 1);
+    return {
+      id, path,
+      async get() { return { exists: store.has(path), data: () => store.get(path) }; },
+      async set(data) { store.set(path, data); notify(); const { error } = await supa.from("docs").upsert({ col, id, data }); if (error) throw err(error); },
+      async update(data) { const cur = store.get(path) || {}; return this.set({ ...cur, ...data }); },
+      async delete() { store.delete(path); notify(); const { error } = await supa.from("docs").delete().eq("col", col).eq("id", id); if (error) throw err(error); },
+      onSnapshot(next) { const f = () => { if (loaded) next({ exists: store.has(path), data: () => store.get(path) }); }; subs.add(f); f(); return () => subs.delete(f); },
+    };
+  }
+  function collection(c) {
+    return {
+      path: c, doc: id => doc(c + "/" + (id || uid())),
+      onSnapshot(next) { const f = () => { if (!loaded) return; const docs = []; for (const [k, v] of store) { if (k.startsWith(c + "/")) { const id = k.slice(c.length + 1); docs.push({ id, exists: true, data: () => v }); } } next({ docs, size: docs.length, empty: !docs.length }); }; subs.add(f); f(); return () => subs.delete(f); },
+    };
+  }
+  return { doc, collection, loadAll, bulk: async rows => { for (let i = 0; i < rows.length; i += 100) { const { error } = await supa.from("docs").upsert(rows.slice(i, i + 100)); if (error) throw err(error); } } };
+}
+
+/* ---- GitHub-Archiv (privates Repo labertal-belege) ---- */
+const gh = {
+  async req(path, opt = {}) {
+    const g = S.gh || {}; if (!g.token) throw new Error("GitHub-Schlüssel fehlt (Mehr → Einstellungen)");
+    const r = await fetch(`https://api.github.com/repos/${g.repo || GH_REPO_DEFAULT}/contents/${path}`, { method: opt.method || "GET", headers: { Authorization: "Bearer " + g.token, Accept: opt.raw ? "application/vnd.github.raw" : "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }, body: opt.body, cache: "no-store" });
+    if (r.status === 401) throw new Error("GitHub-Schlüssel ungültig oder abgelaufen");
+    if (r.status === 403) throw new Error("GitHub verweigert den Zugriff (Schlüssel-Rechte prüfen)");
+    return r;
+  },
+  async put(path, b64, message) {
+    let sha; const h = await this.req(path); if (h.ok) sha = (await h.json()).sha;
+    const r = await this.req(path, { method: "PUT", body: JSON.stringify({ message, content: b64, ...(sha ? { sha } : {}) }) });
+    if (!r.ok) throw new Error("Upload zu GitHub fehlgeschlagen (" + r.status + ")");
+  },
+};
+async function fileB64(file) { const u8 = new Uint8Array(await file.arrayBuffer()); let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+async function fileHash(file) { const h = await crypto.subtle.digest("SHA-256", await file.arrayBuffer()); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join(""); }
+function makeAssets() {
+  return { async upload(file) { const id = uid(); const hash = await fileHash(file); await gh.put("dateien/" + id, await fileB64(file), `Beleg ${todayISO()} ${file.name || ""}`.trim()); await cacheBlob(id, file); return { id, contentType: file.type, hash }; } };
+}
+function findFileByHash(hash) { if (!hash) return null; for (const v of S.vouchers.values()) for (const f of v.files || []) if (f.hash === hash) return v; return null; }
+
+/* ---- Anmeldung ---- */
+function viewLogin(mode, msg) {
+  const saved = (() => { try { return localStorage.getItem("lb-email") || ""; } catch (e) { return ""; } })();
+  $("#nav").innerHTML = ""; $("#tabbar").innerHTML = "";
+  $("#view").innerHTML = `<div style="max-width:420px;margin:8vh auto 0" class="card">
+    <div class="row" style="gap:12px;margin-bottom:14px"><img src="icon-192.png" alt="" style="width:52px;height:52px;border-radius:12px"><div><h1 style="font-size:24px">Labertal Buchhaltung</h1><div class="small muted">${mode === "setup" ? "Einmalig einrichten" : "Anmelden"}</div></div></div>
+    <form id="loginForm" class="grid">
+      <label class="f"><span>E-Mail</span><input id="lg-email" type="email" autocomplete="username" value="${esc(saved)}" required></label>
+      <label class="f"><span>${mode === "setup" ? "Neuen Code festlegen (mind. 6 Zeichen)" : "Code"}</span><input id="lg-pin" type="password" inputmode="numeric" autocomplete="${mode === "setup" ? "new-password" : "current-password"}" minlength="6" required></label>
+      ${msg ? `<div class="note small ${/fehl|falsch|nicht/i.test(msg) ? "bad" : ""}">${esc(msg)}</div>` : ""}
+      <button class="btn pri big" type="submit">${mode === "setup" ? "Konto anlegen" : "Anmelden"}</button>
+      <button class="btn" type="button" data-act="${mode === "setup" ? "toLogin" : "toSetup"}">${mode === "setup" ? "Ich habe schon ein Konto" : "Erstes Mal? Konto einrichten"}</button>
+    </form></div>`;
+  $("#loginForm").onsubmit = async e => {
+    e.preventDefault(); const email = $("#lg-email").value.trim(), pin = $("#lg-pin").value; try { localStorage.setItem("lb-email", email); } catch (x) { }
+    const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+    try {
+      if (mode === "setup") {
+        const { data, error } = await supa.auth.signUp({ email, password: pin }); if (error) throw error;
+        if (!data.session) return viewLogin("login", "Konto angelegt. Öffne jetzt die Bestätigungs-Mail von Supabase und tippe auf den Link (die Seite danach darf einen Fehler zeigen). Dann hier anmelden.");
+        session = data.session;
+      } else { const { data, error } = await supa.auth.signInWithPassword({ email, password: pin }); if (error) throw error; session = data.session; }
+      await afterLogin();
+    } catch (x) { viewLogin(mode, /Invalid login/i.test(x.message) ? "E-Mail oder Code falsch." : /not confirmed/i.test(x.message) ? "Die E-Mail ist noch nicht bestätigt. Bitte den Link in der Mail antippen." : "Fehler: " + x.message); }
+  };
+}
+async function afterLogin() {
+  const { data: ok, error } = await supa.rpc("claim_owner"); if (error) throw error;
+  if (!ok) { $("#view").innerHTML = '<div class="card note bad" style="max-width:520px;margin:10vh auto">Dieses Konto hat keinen Zugriff auf die Buchhaltung.</div>'; return; }
+  await startData();
+}
+
+async function boot() {
+  await setupSW();
+  if (!window.supabase) { $("#view").innerHTML = '<div class="card note bad">Keine Internetverbindung beim ersten Start. Bitte mit Internet neu öffnen.</div>'; return; }
+  supa = window.supabase.createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "lb-auth" } });
+  const { data } = await supa.auth.getSession(); session = data.session;
+  supa.auth.onAuthStateChange((ev, sess) => { session = sess; if (ev === "SIGNED_OUT") location.reload(); });
+  if (!session) return viewLogin("login");
+  try { await afterLogin(); } catch (e) { viewLogin("login", "Anmeldung abgelaufen, bitte neu anmelden."); }
+}
+async function startData() {
+  $("#view").innerHTML = '<div class="loading"><span class="spin"></span> Daten werden geladen …</div>';
+  const timer = setTimeout(() => { if (!S.ok) $("#view").innerHTML = '<div class="card note bad">Die Daten lassen sich gerade nicht laden. Prüfe die Internetverbindung.</div>'; }, 15000);
+  db = makeDb(); assets = makeAssets(); downloads = { async save({ filename, data }) { const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); return { status: "saved" }; } };
+  db.doc("cfg/github").onSnapshot(snap => { S.gh = snap.exists ? { ...snap.data() } : null; postSW(); });
+  db.doc("cfg/check").onSnapshot(snap => { S.check = snap.exists ? { ...snap.data() } : null; scheduleRender(); });
+  db.doc("cfg/company").onSnapshot(snap => { S.company = snap.exists ? { ...snap.data() } : {}; S.loaded.add("cfg"); ready(timer); }, err => console.warn(err));
+  for (const c of COLS) {
+    db.collection(c).onSnapshot(snap => {
+      const m = new Map(); for (const d of snap.docs) m.set(d.id, { ...d.data(), id: d.id });
+      S[c] = m; S.loaded.add(c); ready(timer);
+    }, err => { console.warn(c, err); S.loaded.add(c); ready(timer); });
+  }
+  window.addEventListener("hashchange", render);
+  navigator.serviceWorker?.addEventListener("controllerchange", postSW);
+  await db.loadAll().catch(e => { $("#view").innerHTML = `<div class="card note bad">Laden fehlgeschlagen: ${esc(e.message)}</div>`; });
+}
+function ready(timer) { if (!S.ok && S.loaded.size >= COLS.length + 1) { S.ok = true; clearTimeout(timer); } if (S.ok) scheduleRender(); }
+let _rt = 0; function scheduleRender() { cancelAnimationFrame(_rt); _rt = requestAnimationFrame(render); }
+
+async function put(col, id, data) {
+  const clean = JSON.parse(JSON.stringify(data)); delete clean.id;
+  try { await db.collection(col).doc(id).set(clean); }
+  catch (e) { if (e?.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random() * 600)); await db.collection(col).doc(id).set(clean); } else { toast("Speichern fehlgeschlagen: " + (e?.message || e?.code || e)); throw e; } }
+}
+async function patch(col, id, data) { const cur = S[col].get(id) || {}; await put(col, id, { ...cur, ...data }); }
+async function del(col, id) { await db.collection(col).doc(id).delete(); }
+async function saveCompany(data) { await db.doc("cfg/company").set(JSON.parse(JSON.stringify({ ...S.company, ...data }))); }
+
+/* ===================== Rechnen ===================== */
+function itemNet(it) { return r2(parseNum(it.qty) * parseNum(it.price)); }
+function salesTotals(doc) {
+  const by = {}; let net = 0;
+  for (const it of doc.items || []) { const n = itemNet(it); net += n; const v = doc.taxMode === "rc13b" ? 0 : Number(it.vat || 0); by[v] = (by[v] || 0) + n; }
+  let tax = 0; for (const v in by) tax += r2(by[v] * Number(v) / 100);
+  net = r2(net); tax = r2(tax);
+  return { net, tax, gross: r2(net + tax), by };
+}
+function docGross(d) { return d.items && d.items.length ? salesTotals(d).gross : Number(d.gross || 0); }
+function paidSum(d) { return r2((d.payments || []).reduce((a, p) => a + Number(p.amount || 0), 0)); }
+function openAmount(d) { if (d.status === "bezahlt" || d.status === "storniert") return 0; return r2(docGross(d) - paidSum(d)); }
+function vItemSplit(it) { const g = Number(it.gross || 0), v = Number(it.vat || 0); const net = it.net != null && it.tax != null ? Number(it.net) : r2(g / (1 + v / 100)); const tax = it.tax != null && it.net != null ? Number(it.tax) : r2(g - net); return { gross: g, net, tax }; }
+function vGross(v) { return r2((v.items || []).reduce((a, i) => a + Number(i.gross || 0), 0)); }
+function isOverdue(d) { return (d.status === "offen") && d.dueDate && d.dueDate < todayISO(); }
+function cname(id) { const c = S.contacts.get(id); return c ? c.name : ""; }
+function salesName(d) { return unent(d.address?.name || cname(d.contactId) || "–"); }
+function vendorName(v) { return unent(v.vendor || cname(v.contactId) || "–"); }
+const INCOME_KINDS = ["einnahme", "einnahmenminderung"];
+const sgnV = v => (v.kind === "ausgabenminderung" || v.kind === "einnahmenminderung") ? -1 : 1;
+
+/* Zahlungen eines Belegs: [{date, amount}] – fuer Ist-Versteuerung und EÜR */
+function paymentsOf(d, gross) {
+  if (d.payments && d.payments.length) return d.payments;
+  if (d.status === "bezahlt" && d.paidDate) return [{ date: d.paidDate, amount: gross }];
+  return [];
+}
+
+/* ---- Umsatzsteuer-Voranmeldung (Ist-Versteuerung: Umsatz bei Zahlung, Vorsteuer nach Belegdatum) ---- */
+function ustvaCalc(from, to) { // ISO-Daten, inkl.
+  const inR = d => d && d >= from && d <= to;
+  const K = { "81": 0, "86": 0, "60": 0, "45": 0, "66": 0 }; const src = [];
+  const addSales = (lines, pays, gross, ref) => {
+    for (const p of pays) { if (!inR(p.date) || !gross) continue; const ratio = p.amount / gross;
+      for (const l of lines) { const v = l.vat, n = l.net * ratio; if (l.rc) K["60"] += n; else if (v === 19) K["81"] += n; else if (v === 7) K["86"] += n; else K["45"] += n; }
+      src.push({ ...ref, date: p.date, amount: p.amount }); }
+  };
+  for (const d of S.sales.values()) {
+    if (!(d.kind === "rechnung" || d.kind === "storno") || d.status === "entwurf") continue;
+    const t = salesTotals(d); const lines = Object.entries(t.by).map(([v, n]) => ({ vat: Number(v), net: n, rc: d.taxMode === "rc13b" }));
+    if (!d.items?.length && d.taxMode === "rc13b") lines.push({ vat: 0, net: Number(d.gross || 0), rc: true });
+    addSales(lines, paymentsOf(d, t.gross || Number(d.gross || 0)), t.gross || Number(d.gross || 0), { t: "sales", id: d.id, label: (d.number || "Entwurf") + " " + salesName(d) });
+  }
+  for (const v of S.vouchers.values()) {
+    if (v.status === "pruefen" || v.status === "claude" || v.status === "storniert") continue;
+    const s = sgnV(v);
+    if (INCOME_KINDS.includes(v.kind)) {
+      const lines = (v.items || []).filter(i => CATS[i.cat]?.group === "einnahme").map(i => { const x = vItemSplit(i); return { vat: Number(i.vat), net: s * x.net, rc: i.cat === "RevenuesRC" }; });
+      addSales(lines, paymentsOf(v, vGross(v)).map(p => ({ ...p, amount: p.amount })), vGross(v), { t: "vouchers", id: v.id, label: (v.number || "") + " " + vendorName(v) });
+    } else if (inR(v.date)) {
+      let vst = 0; for (const i of v.items || []) { const g = CATS[i.cat]?.group; if (g === "steuer" || g === "privat" || g === "neutral") continue; vst += s * vItemSplit(i).tax; }
+      if (vst) { K["66"] += vst; src.push({ t: "vouchers", id: v.id, label: (v.number || "") + " " + vendorName(v), date: v.date, vst }); }
+    }
+  }
+  for (const b of S.bank.values()) {
+    if (!b.cat || b.link || !inR(b.date) || !b.vat) continue; const g = CATS[b.cat]?.group; const a = Math.abs(b.amount); const net = a / (1 + b.vat / 100); const tax = a - net;
+    if (g === "einnahme") { const n = (b.amount > 0 ? 1 : -1) * net; if (b.vat === 19) K["81"] += n; else if (b.vat === 7) K["86"] += n; src.push({ t: "bank", id: b.id, label: b.partner || b.text || "Bankbuchung", date: b.date, amount: b.amount }); }
+    else if (g === "ausgabe" || g === "anlage") { K["66"] += (b.amount < 0 ? 1 : -1) * tax; src.push({ t: "bank", id: b.id, label: b.partner || b.text || "Bankbuchung", date: b.date, vst: tax }); }
+  }
+  const k81 = Math.floor(K["81"] + 1e-9), k86 = Math.floor(K["86"] + 1e-9);
+  const ust = r2(k81 * 0.19 + k86 * 0.07);
+  const k66 = r2(K["66"]);
+  return { k81, k86, k60: Math.floor(K["60"] + 1e-9), k45: Math.floor(K["45"] + 1e-9), ust81: r2(k81 * 0.19), ust86: r2(k86 * 0.07), k66, k83: r2(ust - k66), src };
+}
+
+/* ---- AfA ---- */
+function afaFor(a, year, untilMonth = 12) { // Summe AfA im Jahr bis einschl. Monat
+  if (a.schedule && a.schedule[year] != null) {
+    const [sy, sm] = a.date.split("-").map(Number); const endY = sy + Math.floor((sm - 1 + a.months - 1) / 12); const endM = ((sm - 1 + a.months - 1) % 12) + 1;
+    const first = year == sy ? sm : 1, last = year == endY ? endM : 12; const monthsInYear = Math.max(0, last - first + 1);
+    const cnt = Math.max(0, Math.min(untilMonth, last) - first + 1); if (!monthsInYear) return 0;
+    return cnt >= monthsInYear ? Number(a.schedule[year]) : r2(Number(a.schedule[year]) / monthsInYear * cnt);
+  }
+  if (!a.cost || !a.months) return 0;
+  const [sy, sm] = a.date.split("-").map(Number); const start = sy * 12 + sm - 1; const end = start + a.months - 1; const monthly = Number(a.cost) / a.months;
+  let sum = 0; for (let m = 1; m <= untilMonth; m++) { const k = year * 12 + m - 1; if (k >= start && k <= end) sum += monthly; }
+  return r2(sum);
+}
+function afaUntil(year) { const now = new Date(); if (year < now.getFullYear()) return 12; if (year > now.getFullYear()) return 0; return now.getMonth(); /* abgeschlossene Monate */ }
+
+/* ---- EÜR (Zufluss-/Abflussprinzip) ---- */
+const EUER_LINES = [
+  ["Betriebseinnahmen", null],
+  ["15", "112", "Umsatzsteuerpflichtige Betriebseinnahmen"],
+  ["16", "103", "Umsatzsteuerfreie oder nicht steuerbare Betriebseinnahmen, §13b-Umsätze"],
+  ["17", "140", "Vereinnahmte Umsatzsteuer"],
+  ["23", "159", "Summe Betriebseinnahmen", "sumIn"],
+  ["Betriebsausgaben", null],
+  ["27", "100", "Waren, Roh- und Hilfsstoffe einschl. Nebenkosten"],
+  ["", "110", "Bezogene Fremdleistungen"],
+  ["33", "130", "AfA auf bewegliche Wirtschaftsgüter"],
+  ["", "280", "Aufwendungen für Telekommunikation"],
+  ["45", "281", "Fortbildungskosten (ohne Reisekosten)"],
+  ["", "194", "Rechts- und Steuerberatung, Buchführung"],
+  ["", "150", "Miete/Pacht für Geschäftsräume"],
+  ["49", "223", "Beiträge, Gebühren, Abgaben und Versicherungen (ohne Gebäude und Kfz)"],
+  ["51", "229", "Arbeitsmittel (Bürobedarf, Porto, Fachliteratur)"],
+  ["52", "226", "Abfallbeseitigung und Entsorgung"],
+  ["54", "224", "Werbekosten"],
+  ["57", "185", "Gezahlte, abziehbare Vorsteuerbeträge"],
+  ["58", "186", "An das Finanzamt gezahlte und verrechnete Umsatzsteuer"],
+  ["60", "183", "Übrige unbeschränkt abziehbare Betriebsausgaben"],
+  ["63", "165", "Bewirtungsaufwendungen nicht abziehbar (zählt nicht zur Summe)", "info"],
+  ["63", "175", "Bewirtungsaufwendungen abziehbar"],
+  ["69", "145", "Kfz: Steuern, Versicherungen und Maut"],
+  ["70", "146", "Kfz: sonstige tatsächliche Kosten (Treibstoff, Reparaturen, Wartung)"],
+  ["75", "199", "Summe Betriebsausgaben", "sumOut"],
+  ["Ermittlung des Gewinns", null],
+  ["97", "219", "Vorläufiger steuerpflichtiger Gewinn/Verlust", "profit"],
+  ["Entnahmen und Einlagen", null],
+  ["106", "122", "Entnahmen", "info"],
+  ["107", "123", "Einlagen", "info"],
+];
+function euerCalc(year) {
+  const y = String(year); const K = {}; const add = (k, v) => { if (!k) return; K[k] = (K[k] || 0) + v; };
+  const post = (cat, net, tax, income) => {
+    const c = CATS[cat]; if (!c) return;
+    if (c.group === "steuer") { add("186", net + tax); return; }
+    if (c.group === "privat" || c.group === "neutral") return;
+    if (c.group === "anlage") { add("185", tax); return; }
+    if (c.kz === "bewirtung") { add("175", net * 0.7); add("165", net * 0.3); } else add(c.kz, net);
+    if (tax) add(income ? "140" : "185", tax);
+  };
+  for (const d of S.sales.values()) {
+    if (!(d.kind === "rechnung" || d.kind === "storno") || d.status === "entwurf") continue;
+    const t = salesTotals(d); const gross = t.gross || Number(d.gross || 0);
+    for (const p of paymentsOf(d, gross)) { if (!p.date?.startsWith(y) || !gross) continue; const ratio = p.amount / gross;
+      if (!d.items?.length) { post("RevenuesRC", gross * ratio, 0, true); continue; }
+      for (const [v, n] of Object.entries(t.by)) { const vat = Number(v); post(d.taxMode === "rc13b" || vat === 0 ? "RevenuesRC" : "Revenues", n * ratio, r2(n * vat / 100) * ratio, true); } }
+  }
+  for (const v of S.vouchers.values()) {
+    if (v.status === "pruefen" || v.status === "claude" || v.status === "storniert") continue; const s = sgnV(v); const income = INCOME_KINDS.includes(v.kind); const gross = vGross(v);
+    for (const p of paymentsOf(v, gross)) { if (!p.date?.startsWith(y) || !gross) continue; const ratio = p.amount / gross;
+      for (const i of v.items || []) { const x = vItemSplit(i); post(i.cat, s * x.net * ratio, s * x.tax * ratio, income); } }
+  }
+  for (const b of S.bank.values()) {
+    if (!b.cat || b.link || !b.date?.startsWith(y)) continue; const c = CATS[b.cat]; if (!c) continue;
+    const a = Math.abs(b.amount), sg = b.amount > 0 ? 1 : -1; const net = r2(a / (1 + (b.vat || 0) / 100)), tax = r2(a - net);
+    if (c.group === "einnahme") post(b.cat, sg * net, sg * tax, true);
+    else if (c.group === "ausgabe" || c.group === "steuer") post(b.cat, -sg * net, -sg * tax, false);
+    else if (c.group === "anlage") add("185", -sg * tax);
+    else if (c.group === "privat") add(c.kz, c.kz === "123" ? a : -b.amount);
+  }
+  let afa = 0; for (const a of S.assets.values()) afa += afaFor(a, year, afaUntil(year)); if (afa) add("130", afa);
+  for (const k in K) K[k] = r2(K[k]);
+  const sumIn = r2((K["112"] || 0) + (K["103"] || 0) + (K["140"] || 0));
+  const sumOut = r2(Object.entries(K).filter(([k]) => !["112", "103", "140", "122", "123", "165"].includes(k)).reduce((a, [, v]) => a + v, 0));
+  return { K, sumIn, sumOut, profit: r2(sumIn - sumOut) };
+}
+
+/* ===================== Icons ===================== */
+const ICON = {
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2.2l1.4-2h6.8l1.4 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg>',
+  inv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5M9 12h8M9 16h8M9 8h3"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  rec: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+  more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+  fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg>',
+  mat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>',
+  tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>',
+  car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-6h14l2 6v5h-3v-2H6v2H3z"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="16.5" cy="14.5" r="1"/></svg>',
+  food: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v9a2 2 0 0 0 2 2v9M5 2v6M9 2v6M17 22V2c-2 2-3 5-3 8h3"/></svg>',
+  soft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  tax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12M9 21v-6h6v6M3 21h18"/></svg>',
+  euro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6a7 7 0 1 0 0 12M4 10h10M4 14h10"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  car2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 17v2M18 17v2"/></svg>',
+};
+const CAT_ICON = { Fuel: "fuel", MotorVehicle: "car", MotorVehicleInsurance: "car", MotorVehicleTax: "car", MaterialsGoods: "mat", PurchasedMaterials: "mat", SmallParts: "tool", OfficeSupplies: "soft", EntertainmentExpenses: "food", NonDeductibleEntertainmentExpenses: "food", LicencesConcessions: "soft", Telecommunication: "soft", VatPrepayments: "tax", VatPreviousYear: "tax" };
+function catIcon(cat, income) { const k = income ? "inc" : (CAT_ICON[cat] || (CATS[cat]?.group === "steuer" ? "tax" : "")); const svg = ICON[k === "inc" ? "euro" : k] || ICON.rec; return `<span class="ic ${k}">${svg}</span>`; }
+// Schnellauswahl beim Fotografieren
+const QUICK_CATS = ["Fuel", "MaterialsGoods", "SmallParts", "MotorVehicle", "EntertainmentExpenses", "OfficeSupplies", "LicencesConcessions", "OtherExpenditure", "PrivateWithdrawal"];
+const QUICK_LABEL = { Fuel: "Tanken", MaterialsGoods: "Material", SmallParts: "Werkzeug", MotorVehicle: "Auto", EntertainmentExpenses: "Essen/Bewirtung", OfficeSupplies: "Büro", LicencesConcessions: "Software", OtherExpenditure: "Sonstiges", PrivateWithdrawal: "Privat" };
+
+/* ===================== Navigation ===================== */
+const ROUTES = [["start", "Start"], ["belege", "Belege"], ["rechnungen", "Rechnungen"], ["steuer", "Steuer"], ["fahrten", "Fahrtenbuch"], ["bank", "Bank"], ["kontakte", "Kontakte"], ["anlagen", "Anlagen"], ["einstellungen", "Einstellungen"], ["mehr", "Mehr"]];
+function route() { const h = location.hash.replace("#", ""); return ROUTES.some(r => r[0] === h) ? h : "start"; }
+function renderNav() {
+  const cur = route(); const c = S.company || {};
+  const pruefen = [...S.vouchers.values()].filter(v => v.status === "pruefen").length;
+  const bankOpen = [...S.bank.values()].filter(b => !b.link && !b.cat).length;
+  const logo = c.logoData ? `<img src="${c.logoData}" alt="">` : "";
+  $("#nav").innerHTML = `<div class="brand">${logo}<div><b>${esc(c.name || "Buchhaltung")}</b><small>Buchhaltung</small></div></div>
+    <button class="btn pri side-cta" data-act="snap">${ICON.cam} Beleg fotografieren</button>` +
+    ROUTES.filter(r => r[0] !== "mehr").map(([k, l]) => { let b = ""; if (k === "belege" && pruefen) b = `<span class="badge">${pruefen}</span>`; if (k === "bank" && bankOpen) b = `<span class="badge">${bankOpen}</span>`; return `<a href="#${k}" class="${k === cur ? "on" : ""}">${l}${b}</a>`; }).join("") +
+    `<div class="spacer"></div><a href="#einstellungen" data-act="gobackup" class="small muted">Datensicherung</a>`;
+  const moreOn = ["mehr", "steuer", "bank", "kontakte", "anlagen", "einstellungen", "fahrten"].includes(cur);
+  $("#tabbar").innerHTML = `<a href="#start" class="${cur === "start" ? "on" : ""}">${ICON.home}<span>Start</span></a>
+    <a href="#belege" class="${cur === "belege" ? "on" : ""}">${ICON.rec}<span>Belege</span>${pruefen ? `<em class="dot">${pruefen}</em>` : ""}</a>
+    <a href="#" class="fab" data-act="snap" aria-label="Beleg fotografieren"><i>${ICON.cam}</i><span>Foto</span></a>
+    <a href="#rechnungen" class="${cur === "rechnungen" ? "on" : ""}">${ICON.inv}<span>Rechnungen</span></a>
+    <a href="#mehr" class="${moreOn ? "on" : ""}">${ICON.more}<span>Mehr</span></a>`;
+}
+function render() {
+  if (!S.ok) return; renderNav();
+  const r = route(); const v = $("#view");
+  if (S.ok && needsImport() && route() !== "start") { location.hash = "start"; }
+  const fn = { fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
+  const keep = document.activeElement && v.contains(document.activeElement) && document.activeElement.matches("input,select,textarea") ? document.activeElement.id : null;
+  v.innerHTML = fn();
+  if (keep) { const el = document.getElementById(keep); if (el) { el.focus(); if (el.setSelectionRange && el.type === "text") { const l = el.value.length; el.setSelectionRange(l, l); } } }
+  if (r === "start") drawChart();
+}
+
+/* ===================== Datenübernahme aus Lexware (einmalig) ===================== */
+const IMP = { running: false, done: 0, total: 0, err: "" };
+function needsImport() { return !S.company?.migratedFrom; }
+function viewGhSetup(msg) {
+  return `<div class="head"><h1>Fast fertig</h1></div><div class="card" style="max-width:620px">
+    <h2>GitHub-Schlüssel eintragen</h2>
+    <p>Deine Belegbilder liegen im privaten Repo <b>labertal-belege</b>. Trag hier einmal den Fine-grained Token ein, den du dafür erstellt hast. Er wird nur in deiner geschützten Datenbank gespeichert.</p>
+    <label class="f"><span>Token (beginnt mit github_pat_)</span><input id="gh-token" autocomplete="off" spellcheck="false"></label>
+    ${msg ? `<p class="note bad small">${esc(msg)}</p>` : ""}
+    <div class="row" style="margin-top:12px"><button class="btn pri big" data-act="saveGh">Speichern</button></div></div>`;
+}
+function viewImport() {
+  if (!S.gh?.token) return viewGhSetup(IMP.ghErr);
+  return `<div class="head"><h1>Willkommen</h1></div><div class="card" style="max-width:640px">
+    <h2>Daten aus Lexware übernehmen</h2>
+    <p>Alles ist vorbereitet: 8 Kontakte, 16 Rechnungen und Angebote, 256 Belege mit Belegbildern, 76 Bankbuchungen ohne Beleg und der VW Caddy als Anlage. Das dauert etwa eine Minute.</p>
+    ${IMP.running ? `<p><span class="spin"></span> ${IMP.done} von ${IMP.total} übernommen … Bitte die Seite offen lassen.</p><div style="height:8px;background:var(--chip);border-radius:9px;overflow:hidden"><div style="height:100%;width:${IMP.total ? Math.round(IMP.done / IMP.total * 100) : 0}%;background:var(--accent)"></div></div>` : `<button class="btn pri" data-act="runImport">Jetzt übernehmen</button>`}
+    ${IMP.err ? `<p class="note bad small">${esc(IMP.err)}</p>` : ""}</div>`;
+}
+async function runImport() {
+  if (IMP.running) return; IMP.running = true; IMP.err = ""; render();
+  try {
+    const r = await gh.req("umzug/daten.json", { raw: true }); if (!r.ok) throw new Error("Umzugsdatei im Repo labertal-belege nicht gefunden (" + r.status + ")");
+    const D = await r.json(); const rows = [];
+    for (const c of ["contacts", "assets", "bank", "sales", "vouchers"]) for (const [id, data] of Object.entries(D[c] || {})) rows.push({ col: c, id, data });
+    IMP.total = rows.length + 1; IMP.done = 0; render();
+    for (let i = 0; i < rows.length; i += 50) { await db.bulk(rows.slice(i, i + 50)); IMP.done = Math.min(rows.length, i + 50); render(); }
+    await db.bulk([{ col: "cfg", id: "company", data: D.company }]); IMP.done++; await db.loadAll();
+    toast("Alle Daten aus Lexware sind übernommen.", 5000);
+  } catch (e) { IMP.err = "Übernahme unterbrochen: " + (e?.message || e?.code || e) + ". Einfach nochmal auf „Jetzt übernehmen“ tippen – bereits übernommene Daten werden nicht doppelt angelegt."; }
+  IMP.running = false; render();
+}
+
+/* ===================== Übersicht ===================== */
+function voucherRow(v) {
+  const inc = INCOME_KINDS.includes(v.kind); const cat = canon(v.items?.[0]?.cat); const g = sgnV(v) * vGross(v);
+  const cats = [...new Set((v.items || []).map(i => catLabel(canon(i.cat))))].join(", ");
+  const thumb = v.files?.[0] && /image/.test(v.files[0].type || "") ? `<span class="ic"><img src="_blob/${esc(v.files[0].id)}" alt="" loading="lazy"></span>` : catIcon(cat, inc);
+  if (v.status === "claude") return `<a class="li" href="#" data-act="openVoucher" data-id="${v.id}">${thumb}<div><div class="t">${esc(v.hint?.note || v.note || "Neuer Beleg")}</div><div class="s">erfasst ${fmtDate((v.capturedAt || v.createdAt || v.date || "").slice(0, 10))}${v.hint?.amount ? " · " + eur(v.hint.amount) : ""}${v.question ? ' · <b style="color:var(--warn)">Frage von Claude</b>' : ""}</div></div><div class="a">${vChip(v)}</div></a>`;
+  return `<a class="li" href="#" data-act="openVoucher" data-id="${v.id}">${thumb}<div><div class="t">${esc(vendorName(v))}</div><div class="s">${esc(cats)} · ${fmtDate(v.date)}</div></div><div class="a" style="color:${inc ? "var(--good)" : "inherit"}">${inc ? "+" : ""}${eur(inc ? g : -g).replace("-", "−")}<br>${v.status === "bezahlt" ? "" : vChip(v)}</div></a>`;
+}
+function viewCheckCard() {
+  const c = S.check; const waiting = [...S.vouchers.values()].filter(v => v.status === "claude").length;
+  const items = (c?.findings || []).slice(0, 6);
+  return `<div class="sec"><h2>Claude-Prüfung</h2>${c?.at ? `<span class="small muted">zuletzt ${fmtDate(c.at.slice(0, 10))}</span>` : ""}</div>
+  <div class="card"><div class="row" style="justify-content:space-between;gap:12px"><div style="flex:1;min-width:200px">
+    ${c?.summary ? `<div>${esc(c.summary)}</div>` : `<div>Claude prüft einmal pro Woche alles: liest neue Belege aus, sucht Doppelte, fehlende Belege und Fehler.</div>`}
+    ${items.length ? `<ul class="small" style="margin:8px 0 0;padding-left:18px">${items.map(f => `<li>${esc(f.text || f)}</li>`).join("")}</ul>` : ""}
+    ${waiting ? `<div class="small muted" style="margin-top:6px">${waiting} Belege warten gerade.</div>` : ""}</div>
+    <button class="btn pri" data-act="claudeCheck">${ICON.shield} Jetzt prüfen lassen</button></div></div>`;
+}
+function monthSums(ym) {
+  let inc = 0, out = 0, vst = 0, n = 0;
+  for (const v of S.vouchers.values()) { if (v.status === "pruefen" || v.status === "claude" || v.status === "storniert" || !v.date?.startsWith(ym)) continue; const grp = CATS[v.items?.[0]?.cat]?.group; if (grp === "steuer" || grp === "privat") continue; n++;
+    if (INCOME_KINDS.includes(v.kind)) inc += sgnV(v) * vGross(v); else { out += sgnV(v) * vGross(v); for (const i of v.items || []) vst += sgnV(v) * vItemSplit(i).tax; } }
+  for (const d of S.sales.values()) { if (d.kind !== "rechnung" || d.status === "entwurf" || d.status === "storniert" || !d.date?.startsWith(ym)) continue; inc += docGross(d); }
+  return { inc: r2(inc), out: r2(out), vst: r2(vst), n };
+}
+function viewStart() {
+  if (needsImport() || IMP.running) return viewImport();
+  const now0 = new Date(); const ym = todayISO().slice(0, 7); const ms = monthSums(ym);
+  const recent = [...S.vouchers.values()].filter(v => v.status !== "storniert").sort((a, b) => (b.createdAt || b.date || "").localeCompare(a.createdAt || a.date || "")).slice(0, 6);
+  const lastBk = S.company?.lastBackupAt; const bkDays = lastBk ? Math.floor((Date.now() - new Date(lastBk)) / 864e5) : null;
+  const hour = now0.getHours(); const hi = hour < 11 ? "Guten Morgen" : hour < 18 ? "Hallo" : "Guten Abend";
+  const first = (S.company?.owner || "").split(" ")[0];
+  const sales = [...S.sales.values()].filter(d => d.kind === "rechnung" && d.status === "offen");
+  const openIn = r2(sales.reduce((a, d) => a + openAmount(d), 0)); const overdueIn = sales.filter(isOverdue);
+  const vo = [...S.vouchers.values()].filter(v => v.status === "offen" && !INCOME_KINDS.includes(v.kind));
+  const openOut = r2(vo.reduce((a, v) => a + sgnV(v) * (vGross(v) - paidSum(v)), 0));
+  const pruefen = [...S.vouchers.values()].filter(v => v.status === "pruefen").length;
+  const quotes = [...S.sales.values()].filter(d => d.kind === "angebot" && d.status === "offen");
+  const now = new Date(); const pm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const per = periodRange(pm.getFullYear(), pm.getMonth() + 1); const u = ustvaCalc(per.from, per.to);
+  const filed = S.ustva.get(per.key); const due = new Date(now.getFullYear(), now.getMonth(), 10);
+  const year = now.getFullYear(); const e = euerCalc(year);
+  const bankOpen = [...S.bank.values()].filter(b => !b.link && !b.cat).length;
+  const dueStr = fmtDate(`${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-10`);
+  const todos = [];
+  if (!filed && Math.abs(u.k83) > 0) todos.push(`<a href="#steuer" class="${now > due ? "bad" : "info"}">${ICON.tax}<div><b>Umsatzsteuer ${MONTHS[pm.getMonth()]} melden</b><div class="small muted">${u.k83 < 0 ? "Erstattung" : "Zahllast"} ${eur(Math.abs(u.k83))} · fällig ${dueStr}</div></div></a>`);
+  for (const d of overdueIn) todos.push(`<a href="#" class="bad" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>${esc(salesName(d))} hat noch nicht bezahlt</b><div class="small muted">${esc(d.number)} · ${eur(openAmount(d))} · fällig seit ${fmtDate(d.dueDate)}</div></div></a>`);
+  const waitingC = [...S.vouchers.values()].filter(v => v.status === "claude").length;
+  if (waitingC) todos.push(`<a href="#belege" class="info" data-act="vtab" data-tab="claude">${ICON.rec}<div><b>${waitingC === 1 ? "1 Beleg wartet" : waitingC + " Belege warten"} auf Claude</b><div class="small muted">Werden beim Wochen-Check ausgelesen – oder jetzt prüfen lassen</div></div></a>`);
+  if (pruefen) todos.push(`<a href="#belege" data-act="vtab" data-tab="pruefen">${ICON.rec}<div><b>${pruefen} alte Belege prüfen</b><div class="small muted">Aus Lexware, noch nicht gebucht, viele doppelt</div></div></a>`);
+  if (bankOpen) todos.push(`<a href="#bank" class="info">${ICON.bank}<div><b>${bankOpen} Kontoumsätze zuordnen</b></div></a>`);
+  for (const d of quotes) todos.push(`<a href="#" class="info" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>Angebot an ${esc(salesName(d))} nachfassen</b><div class="small muted">${esc(d.number)} · ${eur(docGross(d))}</div></div></a>`);
+  if (bkDays == null || bkDays > 30) todos.push(`<a href="#" data-act="fullBackup">${ICON.shield}<div><b>Datensicherung machen</b><div class="small muted">${bkDays == null ? "Noch nie gesichert" : `Letzte Sicherung vor ${bkDays} Tagen`} · alle Daten und Belegbilder als ZIP</div></div></a>`);
+  return `<div class="hello"><div><div class="muted">${now0.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</div><h1>${hi}${first ? ", " + esc(first) : ""}</h1></div></div>
+  <div class="hero">
+    <button class="main" data-act="snap">${ICON.cam}<div><b>Beleg fotografieren</b><br><span>Tankquittung, Rechnung, Kassenbon – sofort sicher gespeichert</span></div></button>
+    <button data-act="pickFiles">${ICON.file}<b>PDF / Scans</b><span>Eine oder viele Dateien – oder <u data-act="pickFolder">ganzen Ordner</u></span></button>
+    <button data-act="newSale" data-kind="rechnung">${ICON.inv}<b>Rechnung schreiben</b><span>oder <u data-act="newSale" data-kind="angebot">Angebot</u></span></button>
+  </div>
+  <div class="stats">
+    <a class="stat" href="#rechnungen"><div class="lbl">Kunden schulden dir</div><div class="val">${eur(openIn)}</div><div class="sub">${sales.length} offene Rechnungen</div></a>
+    <a class="stat" href="#belege"><div class="lbl">Du musst noch zahlen</div><div class="val">${eur(openOut)}</div><div class="sub">${vo.length} offene Ausgaben</div></a>
+    <a class="stat" href="#belege"><div class="lbl">Ausgaben ${MONTHS[now0.getMonth()]}</div><div class="val">${eur(ms.out)}</div><div class="sub">davon Vorsteuer ${eur(ms.vst)}</div></a>
+    <a class="stat" href="#steuer"><div class="lbl">Gewinn ${year} bisher</div><div class="val">${eur(e.profit)}</div><div class="sub">vorläufig, nach EÜR</div></a>
+  </div>
+  ${todos.length ? `<div class="sec"><h2>Zu erledigen</h2></div><div class="todo">${todos.join("")}</div>` : ""}
+  ${viewCheckCard()}
+  <div class="sec"><h2>Zuletzt erfasst</h2><a href="#belege" class="small">Alle Belege</a></div>
+  <div class="list">${recent.map(voucherRow).join("") || '<div class="empty">Noch keine Belege</div>'}</div>
+  <div class="card" style="margin-top:20px"><div class="row" style="justify-content:space-between"><h3>Einnahmen und Ausgaben ${year}</h3>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Einnahmen</span><span><i style="background:var(--amber)"></i>Ausgaben</span></div></div>
+    <div id="chart" style="margin-top:8px"></div><p class="small muted" style="margin:6px 0 0">Brutto nach Zahlungsdatum, ohne Umsatzsteuer-Zahlungen und Privatbuchungen.</p></div>`;
+}
+function monthlyFlows(year) {
+  const inM = Array(12).fill(0), outM = Array(12).fill(0); const y = String(year);
+  const addP = (pays, sign, arr) => { for (const p of pays) if (p.date?.startsWith(y)) arr[Number(p.date.slice(5, 7)) - 1] += sign * p.amount; };
+  for (const d of S.sales.values()) if ((d.kind === "rechnung" || d.kind === "storno") && d.status !== "entwurf") addP(paymentsOf(d, docGross(d)), 1, inM);
+  for (const v of S.vouchers.values()) { if (v.status === "pruefen" || v.status === "claude" || v.status === "storniert") continue; if ((v.items || []).every(i => ["steuer", "privat", "neutral"].includes(CATS[i.cat]?.group))) continue; addP(paymentsOf(v, vGross(v)), sgnV(v), INCOME_KINDS.includes(v.kind) ? inM : outM); }
+  for (const b of S.bank.values()) { if (!b.cat || b.link || !b.date?.startsWith(y)) continue; const g = CATS[b.cat]?.group; const m = Number(b.date.slice(5, 7)) - 1; if (g === "einnahme") inM[m] += b.amount; else if (g === "ausgabe") outM[m] -= b.amount; }
+  return { inM, outM };
+}
+function drawChart() {
+  const el = $("#chart"); if (!el) return; const { inM, outM } = monthlyFlows(new Date().getFullYear());
+  const W = 760, H = 220, P = { l: 56, r: 10, t: 10, b: 26 }; const max = Math.max(100, ...inM, ...outM);
+  const step = niceStep(max / 4); const top = Math.ceil(max / step) * step; const bw = (W - P.l - P.r) / 12;
+  const y = v => P.t + (H - P.t - P.b) * (1 - v / top);
+  let s = `<svg class="bar-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Einnahmen und Ausgaben je Monat">`;
+  for (let v = 0; v <= top + 1e-6; v += step) s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmtNum(v, 0)}</text>`;
+  for (let m = 0; m < 12; m++) { const x = P.l + m * bw; const w = bw * 0.36;
+    s += `<rect x="${x + bw * 0.12}" y="${y(Math.max(0, inM[m]))}" width="${w}" height="${y(0) - y(Math.max(0, inM[m]))}" rx="2" fill="var(--accent)"><title>${MONTHS[m]} Einnahmen ${eur(inM[m])}</title></rect>`;
+    s += `<rect x="${x + bw * 0.12 + w + 2}" y="${y(Math.max(0, outM[m]))}" width="${w}" height="${y(0) - y(Math.max(0, outM[m]))}" rx="2" fill="var(--amber)"><title>${MONTHS[m]} Ausgaben ${eur(outM[m])}</title></rect>`;
+    s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--muted)">${MONTHS[m].slice(0, 3)}</text>`; }
+  el.innerHTML = s + "</svg>";
+}
+function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+
+/* ===================== Rechnungen & Angebote ===================== */
+const SALES_STATUS = { entwurf: ["Entwurf", ""], offen: ["offen", "info"], bezahlt: ["bezahlt", "good"], storniert: ["storniert", ""], angenommen: ["angenommen", "good"], abgelehnt: ["abgelehnt", ""] };
+function salesChip(d) { if (isOverdue(d) && d.kind === "rechnung") return '<span class="chip bad">überfällig</span>'; if (d.kind === "angebot" && d.status === "offen" && d.dueDate && d.dueDate < todayISO()) return '<span class="chip warn">abgelaufen</span>'; const s = SALES_STATUS[d.status] || [d.status, ""]; return `<span class="chip ${s[1]}">${s[0]}</span>`; }
+function viewSales() {
+  const tabs = [["alle", "Alle"], ["rechnung", "Rechnungen"], ["angebot", "Angebote"], ["offen", "Offen"], ["entwurf", "Entwürfe"]];
+  let list = [...S.sales.values()];
+  const t = UI.salesTab; if (t === "rechnung") list = list.filter(d => d.kind === "rechnung" || d.kind === "storno"); else if (t === "angebot") list = list.filter(d => d.kind === "angebot"); else if (t === "offen") list = list.filter(d => d.status === "offen"); else if (t === "entwurf") list = list.filter(d => d.status === "entwurf");
+  const q = UI.search.toLowerCase(); if (q) list = list.filter(d => (d.number + " " + salesName(d) + " " + (d.items || []).map(i => i.desc).join(" ")).toLowerCase().includes(q));
+  list.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.number || "").localeCompare(a.number || ""));
+  const kindL = { rechnung: "Rechnung", angebot: "Angebot", storno: "Rechnungskorrektur" };
+  return `<div class="head"><h1>Rechnungen &amp; Angebote</h1>
+    <button class="btn pri" data-act="newSale" data-kind="rechnung">Neue Rechnung</button><button class="btn" data-act="newSale" data-kind="angebot">Neues Angebot</button></div>
+  <div class="toolbar"><div class="tabs" style="margin:0">${tabs.map(([k, l]) => `<button data-act="stab" data-tab="${k}" class="${k === t ? "on" : ""}">${l}</button>`).join("")}</div>
+    <input id="search" placeholder="Suchen: Nummer, Kunde, Position" value="${esc(UI.search)}" style="max-width:300px" data-inp="search"></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Art</th><th>Kunde</th><th>Datum</th><th>Fällig</th><th>Status</th><th class="num">Betrag</th><th class="num">Offen</th></tr></thead><tbody>
+  ${list.map(d => `<tr class="click" data-act="openSale" data-id="${d.id}"><td><b>${esc(d.number || "–")}</b></td><td>${kindL[d.kind] || d.kind}${d.taxMode === "rc13b" ? ' <span class="chip">§13b</span>' : ""}</td><td>${esc(salesName(d))}</td><td>${fmtDate(d.date)}</td><td>${fmtDate(d.dueDate)}</td><td>${salesChip(d)}</td><td class="num">${eur(docGross(d))}</td><td class="num">${d.kind === "rechnung" && d.status === "offen" ? eur(openAmount(d)) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="empty">Keine Einträge</td></tr>`}
+  </tbody></table></div>`;
+}
+function newSale(kind, base) {
+  const c = S.company || {};
+  const d = { id: uid(), kind, status: "entwurf", number: "", date: todayISO(), serviceDate: todayISO(), serviceDateTo: "", dueDate: addDays(todayISO(), kind === "angebot" ? 30 : Number(c.paymentDays || 0)),
+    contactId: "", address: null, items: [{ desc: "", qty: 1, unit: "Stunde", price: 0, vat: 19 }], taxMode: "normal",
+    intro: kind === "angebot" ? (c.quoteIntro || "Gerne unterbreiten wir Ihnen folgendes Angebot.") : (c.intro || "Unsere Lieferungen/Leistungen stellen wir Ihnen wie folgt in Rechnung."),
+    closing: kind === "angebot" ? (c.quoteClosing || "Wir freuen uns auf Ihren Auftrag.") : (c.closing || "Vielen Dank für die gute Zusammenarbeit."),
+    terms: kind === "angebot" ? "" : (c.terms || "Zahlbar sofort, rein netto"), payments: [], createdAt: new Date().toISOString(), ...(base || {}) };
+  openSaleEditor(d, true);
+}
+function openSaleEditor(doc, isNew) { UI.sheet = { type: "sale", d: JSON.parse(JSON.stringify(doc)), isNew }; renderSheet(); }
+function contactOptions(sel, filter) {
+  const list = [...S.contacts.values()].filter(c => !c.archived && (!filter || c[filter])).sort((a, b) => a.name.localeCompare(b.name));
+  return `<option value="">– auswählen –</option>` + list.map(c => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(unent(c.name))}${c.customerNo ? " (" + c.customerNo + ")" : ""}</option>`).join("") + `<option value="__new">+ Neuer Kontakt …</option>`;
+}
+const UNITS = ["Stunde", "Stück", "pauschal", "Meter", "Kilometer", "Tag", "Set", "m²", "kg", "Liter"];
+function sheetSale() {
+  const d = UI.sheet.d; const locked = d.status !== "entwurf"; const t = salesTotals(d); const kindL = { rechnung: "Rechnung", angebot: "Angebot", storno: "Rechnungskorrektur" }[d.kind];
+  const dis = locked ? "disabled" : "";
+  const addr = d.address || {};
+  const items = d.items.map((it, i) => `<tr>
+    <td class="muted">${i + 1}</td>
+    <td class="desc"><input id="it-desc-${i}" data-it="${i}" data-f="desc" value="${esc(it.desc)}" ${dis} placeholder="Bezeichnung">${it.longDesc ? `<div class="small muted">${esc(it.longDesc)}</div>` : ""}</td>
+    <td style="width:80px"><input id="it-qty-${i}" data-it="${i}" data-f="qty" value="${esc(fmtQty(it.qty))}" ${dis} inputmode="decimal"></td>
+    <td style="width:110px"><input id="it-unit-${i}" data-it="${i}" data-f="unit" value="${esc(it.unit)}" list="units" ${dis}></td>
+    <td style="width:100px"><input id="it-price-${i}" data-it="${i}" data-f="price" value="${esc(fmtNum(it.price))}" ${dis} inputmode="decimal"></td>
+    <td style="width:80px"><select id="it-vat-${i}" data-it="${i}" data-f="vat" ${dis || (d.taxMode === "rc13b" ? "disabled" : "")}>${[19, 7, 0].map(v => `<option ${Number(it.vat) === v ? "selected" : ""} value="${v}">${v} %</option>`).join("")}</select></td>
+    <td class="num" style="width:100px" id="it-sum-${i}">${eur(itemNet(it))}</td>
+    <td style="width:36px">${locked ? "" : `<button class="btn sm" data-act="rmItem" data-i="${i}" title="Position löschen" aria-label="Position löschen">✕</button>`}</td></tr>`).join("");
+  const pays = (d.payments || []).map(p => `<li>${fmtDate(p.date)} – ${eur(p.amount)}${p.note ? " · " + esc(p.note) : ""}</li>`).join("");
+  return `<div class="sheet-head"><h2>${kindL} ${esc(d.number || "(Entwurf)")}</h2>${salesChip(d)}
+    ${!locked ? `<button class="btn" data-act="saveSale">Entwurf speichern</button><button class="btn pri" data-act="finalizeSale">${d.kind === "angebot" ? "Angebot abschließen" : "Rechnung festschreiben"}</button>` : ""}
+    ${locked ? `<button class="btn pri" data-act="pdfSale">PDF herunterladen</button>` : `<button class="btn" data-act="pdfSale">Vorschau-PDF</button>`}
+    <button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body">
+    ${locked && d.kind !== "angebot" ? `<div class="note small">Diese Rechnung ist festgeschrieben und kann nicht mehr geändert werden (GoBD). Für Korrekturen: stornieren und neu schreiben.</div>` : ""}
+    <div class="card"><div class="form">
+      <label class="f wide"><span>Kunde</span><select id="s-contact" data-sf="contactId" ${dis}>${contactOptions(d.contactId, "isCustomer")}</select></label>
+      <label class="f"><span>Name / Firma</span><input id="s-an" data-af="name" value="${esc(unent(addr.name || ""))}" ${dis}></label>
+      <label class="f"><span>Straße</span><input id="s-as" data-af="street" value="${esc(addr.street || "")}" ${dis}></label>
+      <label class="f"><span>PLZ</span><input id="s-az" data-af="zip" value="${esc(addr.zip || "")}" ${dis}></label>
+      <label class="f"><span>Ort</span><input id="s-ac" data-af="city" value="${esc(addr.city || "")}" ${dis}></label>
+      <label class="f"><span>${d.kind === "angebot" ? "Angebotsdatum" : "Rechnungsdatum"}</span><input type="date" id="s-date" data-sf="date" value="${esc(d.date)}" ${dis}></label>
+      ${d.kind !== "angebot" ? `<label class="f"><span>Leistungsdatum (von)</span><input type="date" id="s-sd" data-sf="serviceDate" value="${esc(d.serviceDate || "")}" ${dis}></label>
+      <label class="f"><span>Leistung bis (optional)</span><input type="date" id="s-sd2" data-sf="serviceDateTo" value="${esc(d.serviceDateTo || "")}" ${dis}></label>` : ""}
+      <label class="f"><span>${d.kind === "angebot" ? "Gültig bis" : "Fällig am"}</span><input type="date" id="s-due" data-sf="dueDate" value="${esc(d.dueDate || "")}" ${dis}></label>
+      ${d.kind !== "angebot" ? `<label class="f"><span>Steuer</span><select id="s-tax" data-sf="taxMode" ${dis}><option value="normal" ${d.taxMode !== "rc13b" ? "selected" : ""}>normal (19 % / 7 %)</option><option value="rc13b" ${d.taxMode === "rc13b" ? "selected" : ""}>§13b Reverse Charge (Bauleistung an Firma)</option></select></label>` : ""}
+    </div></div>
+    <div class="card"><label class="f"><span>Einleitungstext</span><textarea id="s-intro" data-sf="intro" ${dis}>${esc(d.intro || "")}</textarea></label></div>
+    <div class="tbl-wrap"><table class="items"><thead><tr><th>#</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Einzel € (netto)</th><th>USt.</th><th class="num">Gesamt netto</th><th></th></tr></thead><tbody>${items}</tbody></table>
+      ${locked ? "" : `<div style="padding:10px"><button class="btn sm" data-act="addItem">+ Position</button> <button class="btn sm" data-act="addItem" data-preset="anfahrt">+ Anfahrt</button> <button class="btn sm" data-act="addItem" data-preset="arbeit">+ Arbeitszeit</button> <button class="btn sm" data-act="addTrips">+ Fahrten aus Fahrtenbuch</button></div>`}</div>
+    <datalist id="units">${UNITS.map(u => `<option value="${u}">`).join("")}</datalist>
+    <div class="card"><div class="totals" id="s-totals">${totalsHtml(d, t)}</div></div>
+    <div class="card"><div class="form">
+      ${d.kind !== "angebot" ? `<label class="f wide"><span>Zahlungsbedingungen</span><input id="s-terms" data-sf="terms" value="${esc(d.terms || "")}" ${dis}></label>` : ""}
+      <label class="f wide"><span>Schlusstext</span><textarea id="s-closing" data-sf="closing" ${dis}>${esc(d.closing || "")}</textarea></label></div></div>
+    ${locked ? `<div class="card"><h3>Aktionen</h3><div class="row" style="margin-top:8px">
+      ${d.kind === "rechnung" && d.status === "offen" ? `<button class="btn pri" data-act="paySale">Zahlung erfassen</button><button class="btn" data-act="reminderSale">Zahlungserinnerung (PDF)</button>` : ""}
+      ${d.kind === "rechnung" && d.status === "offen" && !paidSum(d) ? `<button class="btn danger" data-act="cancelSale">Stornieren</button>` : ""}
+      ${d.kind === "rechnung" && d.status === "bezahlt" ? `<button class="btn" data-act="unpaySale">Zahlung zurücknehmen</button>` : ""}
+      ${d.kind === "angebot" && d.status === "offen" ? `<button class="btn pri" data-act="quoteToInvoice">In Rechnung umwandeln</button><button class="btn" data-act="quoteStatus" data-s="abgelehnt">Abgelehnt</button>` : ""}
+      ${d.kind === "angebot" && d.status !== "offen" ? `<button class="btn" data-act="quoteStatus" data-s="offen">Wieder öffnen</button>` : ""}
+      <button class="btn" data-act="copySale">Kopie als neuer Entwurf</button>
+      ${d.kind !== "angebot" ? `<button class="btn" data-act="xmlSale">E-Rechnung (XML)</button>` : ""}
+      ${d.files?.length ? d.files.map(f => `<a class="btn" href="_blob/${esc(f.id)}" target="_blank" rel="noopener">Original aus Lexware</a>`).join("") : ""}
+      </div>${pays ? `<h3 style="margin-top:14px">Zahlungen</h3><ul>${pays}</ul>` : ""}</div>` : `${!UI.sheet.isNew ? `<div class="row"><button class="btn danger" data-act="deleteDraft">Entwurf löschen</button></div>` : ""}`}
+  </div>`;
+}
+function fmtQty(q) { const n = parseNum(q); return Number.isInteger(n) ? String(n) : fmtNum(n, n * 100 % 1 ? 3 : 2).replace(/0$/, ""); }
+function totalsHtml(d, t) {
+  let h = `<span>Zwischensumme netto</span><span class="num">${eur(t.net)}</span>`;
+  if (d.taxMode === "rc13b") h += `<span>Umsatzsteuer</span><span class="num">0,00 € (§13b)</span>`;
+  else for (const v of Object.keys(t.by).sort((a, b) => b - a)) h += `<span>Umsatzsteuer ${v} %</span><span class="num">${eur(r2(t.by[v] * v / 100))}</span>`;
+  return h + `<span class="g">Gesamtbetrag</span><span class="num g">${eur(t.gross)}</span>`;
+}
+function readSaleForm() {
+  const d = UI.sheet.d; const sh = $("#sheet");
+  $$("[data-sf]", sh).forEach(el => { d[el.dataset.sf] = el.value; });
+  d.address = d.address || {}; $$("[data-af]", sh).forEach(el => { d.address[el.dataset.af] = el.value; });
+  $$("[data-it]", sh).forEach(el => { const it = d.items[Number(el.dataset.it)]; if (!it) return; const f = el.dataset.f; it[f] = (f === "qty" || f === "price") ? parseNum(el.value) : f === "vat" ? Number(el.value) : el.value; });
+  if (d.taxMode === "rc13b") d.items.forEach(i => i.vat = 0);
+  return d;
+}
+function validateSale(d) {
+  if (!d.address?.name) return "Bitte einen Kunden auswählen oder Name eintragen.";
+  if (!d.items.length || d.items.every(i => !i.desc)) return "Bitte mindestens eine Position mit Bezeichnung eintragen.";
+  if (d.kind !== "angebot" && !d.serviceDate) return "Bitte das Leistungsdatum eintragen (Pflichtangabe auf Rechnungen).";
+  if (!S.company?.taxNo && !S.company?.vatId) return "In den Einstellungen fehlt die Steuernummer oder USt-IdNr.";
+  return null;
+}
+async function saveSale(final, skipForm) {
+  const d = skipForm ? UI.sheet.d : readSaleForm(); d.items = d.items.filter(i => i.desc || parseNum(i.price));
+  if (final) { const err = validateSale(d); if (err) { toast(err); return; } }
+  const t = salesTotals(d); d.net = t.net; d.tax = t.tax; d.gross = t.gross;
+  if (final) {
+    const c = S.company; const isQ = d.kind === "angebot"; const isST = d.kind === "storno";
+    const key = isQ ? "nextQuote" : isST ? "nextCorrection" : "nextInvoice"; const pre = isQ ? (c.quotePrefix || "AG") : isST ? (c.correctionPrefix || "RK") : (c.invoicePrefix || "RE");
+    let n = Number(c[key] || 1); const used = new Set([...S.sales.values()].map(x => x.number));
+    let num = pre + String(n).padStart(4, "0"); while (used.has(num)) { n++; num = pre + String(n).padStart(4, "0"); }
+    await saveCompany({ [key]: n + 1 });
+    d.number = num; d.status = isST ? "storniert" : "offen"; d.finalizedAt = new Date().toISOString();
+    d.companySnapshot = { name: c.name, owner: c.owner, street: c.street, zip: c.zip, city: c.city, phone: c.phone, email: c.email, taxNo: c.taxNo, vatId: c.vatId, iban: c.iban, bic: c.bic, bankName: c.bankName, logoId: c.logoId };
+  }
+  await put("sales", d.id, d); UI.sheet.isNew = false;
+  if (final) for (const it of d.items || []) if (it.tripId && S.trips.get(it.tripId)) await patch("trips", it.tripId, { billedIn: d.number }); UI.sheet.d = JSON.parse(JSON.stringify(d));
+  toast(final ? `${d.number} ist festgeschrieben.` : "Entwurf gespeichert."); renderSheet();
+  if (final && d.kind !== "storno") { try { await downloadSalePdf(d); } catch (e) { console.warn(e); } }
+}
+
+/* ===================== Belege (Eingang/Ausgang) ===================== */
+const V_STATUS = { claude: ["wartet auf Claude", "info"], pruefen: ["zu prüfen", "warn"], offen: ["offen", "info"], bezahlt: ["bezahlt", "good"], storniert: ["storniert", ""] };
+const V_KIND = { ausgabe: "Ausgabe", einnahme: "Einnahme", ausgabenminderung: "Gutschrift (Ausgabe)", einnahmenminderung: "Gutschrift (Einnahme)" };
+function vChip(v) { if (v.status === "offen" && v.dueDate && v.dueDate < todayISO()) return '<span class="chip bad">überfällig</span>'; const s = V_STATUS[v.status] || [v.status, ""]; return `<span class="chip ${s[1]}">${s[0]}</span>`; }
+function viewVouchers() {
+  const tabs = [["alle", "Alle"], ["ausgabe", "Ausgaben"], ["einnahme", "Einnahmen"], ["offen", "Offen"], ["claude", "Bei Claude"], ["pruefen", "Zu prüfen"], ["storniert", "Storniert"]];
+  let list = [...S.vouchers.values()]; const t = UI.vTab;
+  if (t === "ausgabe") list = list.filter(v => !INCOME_KINDS.includes(v.kind)); else if (t === "einnahme") list = list.filter(v => INCOME_KINDS.includes(v.kind)); else if (["offen", "pruefen", "storniert", "claude"].includes(t)) list = list.filter(v => v.status === t); else list = list.filter(v => v.status !== "storniert");
+  const q = UI.search.toLowerCase(); if (q) list = list.filter(v => (v.number + " " + vendorName(v) + " " + (v.note || "") + " " + (v.items || []).map(i => catLabel(i.cat)).join(" ") + " " + fmtNum(vGross(v))).toLowerCase().includes(q));
+  list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const shown = list.slice(0, 300);
+  return `<div class="head"><h1>Belege</h1><button class="btn pri" data-act="snap">${ICON.cam} Foto</button><button class="btn" data-act="pickFiles">Dateien</button><button class="btn" data-act="pickFolder">Ordner</button><button class="btn hide-m" data-act="manualVoucher">Ohne Beleg</button></div>
+  ${BULK.running ? `<div class="note" style="margin-bottom:12px"><span class="spin"></span> Import läuft: ${BULK.done} von ${BULK.total} (${BULK.added} neu, ${BULK.dup} doppelt übersprungen) … Bitte offen lassen.</div>` : ""}
+  <div class="drop hide-m" id="drop" data-act="pickFiles"><b>Belege oder ganze Ordner hier hineinziehen</b><div class="muted small">Fotos, Scans, PDFs, E-Rechnungen. Doppelte erkenne ich am Dateiinhalt und überspringe sie. <a href="#" data-act="pickFolder">Ordner auswählen</a></div></div>
+  <div class="toolbar" style="margin-top:14px"><div class="tabs" style="margin:0">${tabs.map(([k, l]) => `<button data-act="vtab" data-tab="${k}" class="${k === t ? "on" : ""}">${l}${k === "pruefen" ? ` (${[...S.vouchers.values()].filter(v => v.status === "pruefen").length})` : ""}</button>`).join("")}</div>
+    <input id="search" placeholder="Suchen: Firma, Nummer, Betrag" value="${esc(UI.search)}" style="max-width:300px" data-inp="search"></div>
+  ${t === "claude" ? `<div class="note small" style="margin-bottom:12px">Diese Belege sind sicher gespeichert. Claude liest sie beim Wochen-Check aus und bucht sie. <a href="#" data-act="claudeCheck">Jetzt prüfen lassen</a></div>` : ""}
+  ${t === "pruefen" ? `<div class="note small" style="margin-bottom:12px">Diese Belege lagen in Lexware noch unter „zu prüfen“ und zählen nicht in der Steuer. Viele sind doppelt (z. B. Puxbaumer 8120, Allguth 5238). Öffne jeden: <b>Übernehmen</b>, wenn er fehlt, oder <b>Löschen</b>, wenn er doppelt ist.</div>` : ""}
+  ${(() => { let html = "", cur = ""; for (const v of shown) { const m = (v.date || "").slice(0, 7); if (m !== cur) { if (cur) html += "</div>"; cur = m; const sum = shown.filter(x => (x.date || "").startsWith(m) && !INCOME_KINDS.includes(x.kind)).reduce((a, x) => a + sgnV(x) * vGross(x), 0); html += `<div class="sec"><h2>${MONTHS[Number(m.slice(5, 7)) - 1] || ""} ${m.slice(0, 4)}</h2><span class="small muted">Ausgaben ${eur(sum)}</span></div><div class="list">`; }
+      let row = voucherRow(v); const dup = v.status === "pruefen" && findDuplicate(v); if (dup) row = row.replace('<div class="s">', '<div class="s"><span class="chip bad">doppelt?</span> '); html += row; } return html ? html + "</div>" : '<div class="list"><div class="empty">Keine Belege</div></div>'; })()}${list.length > 300 ? `<p class="small muted">Es werden die neuesten 300 von ${list.length} angezeigt. Nutze die Suche.</p>` : ""}`;
+}
+function findDuplicate(v) {
+  const g = vGross(v);
+  for (const o of S.vouchers.values()) { if (o.id === v.id || o.status === "storniert") continue;
+    if (Math.abs(vGross(o) - g) < 0.011 && (o.date === v.date || (v.number && o.number === v.number && vendorName(o).slice(0, 5).toLowerCase() === vendorName(v).slice(0, 5).toLowerCase()))) return o; }
+  return null;
+}
+function blankVoucher() { return { id: uid(), kind: "ausgabe", number: "", date: todayISO(), dueDate: todayISO(), vendor: "", contactId: "", items: [{ cat: "MaterialsGoods", vat: 19, gross: 0 }], status: "bezahlt", paidDate: todayISO(), payMethod: "karte", files: [], note: "", createdAt: new Date().toISOString() }; }
+function openVoucherEditor(v, isNew, extra = {}) { UI.sheet = { type: "voucher", d: JSON.parse(JSON.stringify(v)), isNew, ...extra }; renderSheet(); if (v.files?.length) renderFilePreview(v.files[0]); }
+function catOptions(sel, kind) {
+  const income = INCOME_KINDS.includes(kind);
+  return CAT_GROUPS.map(([g, gl]) => { const opts = Object.entries(CATS).filter(([k, c]) => c.group === g && !c.alias).filter(([, c]) => income ? c.group !== "ausgabe" : c.group !== "einnahme");
+    return opts.length ? `<optgroup label="${gl}">${opts.map(([k, c]) => `<option value="${k}" ${canon(sel) === k ? "selected" : ""}>${esc(c.label)}</option>`).join("")}</optgroup>` : ""; }).join("");
+}
+function sheetCapture() {
+  const st = UI.sheet; const v = st.d; const g = vGross(v); const dup = st.ai === "done" ? findDuplicate(v) : null; const inc = INCOME_KINDS.includes(v.kind);
+  const left = st.queue?.length || 0; const x = (v.items || []).reduce((a, i) => { const s2 = vItemSplit({ vat: i.vat, gross: i.gross }); a.net += s2.net; a.tax += s2.tax; return a; }, { net: 0, tax: 0 });
+  const cat = canon(v.items?.[0]?.cat); const vats = [...new Set((v.items || []).map(i => i.vat + " %"))].join(" + ");
+  const photo = `<div class="photo" id="vprev">${v.files?.length ? '<span class="spin"></span>' : '<span class="muted small">kein Bild</span>'}</div>`;
+  let body;
+  if (st.ai === "busy" || st.ai == null) body = `<div class="result" style="align-items:center;text-align:center"><span class="spin" style="width:34px;height:34px;border-width:3px"></span><div class="vendor">Wird gespeichert …</div><div class="muted small">Das Foto geht sicher in dein Belege-Archiv.</div></div>`;
+  else if (st.ai === "dupfile") { const o = S.vouchers.get(st.dupOf); body = `<div class="result"><div class="vendor">Schon vorhanden</div><div class="small">Genau diese Datei ist bereits gespeichert${o ? `: ${esc(vendorName(o))} vom ${fmtDate(o.date)}` : ""}. Ich habe sie nicht nochmal angelegt.</div>${o ? `<button class="btn" data-act="openVoucher" data-id="${o.id}">Ansehen</button>` : ""}<button class="btn pri big" data-act="capNext">${left ? `Weiter (noch ${left})` : "Fertig"}</button></div>`; }
+  else if (st.ai === "claude") body = `<div class="result">
+      <div class="top"><span class="ic inc">${ICON.shield}</span><div><div class="vendor">Gespeichert</div><div class="small muted">Claude liest Firma, Betrag und MwSt. beim nächsten Check aus. Du musst nichts weiter tun.</div></div></div>
+      <div class="small muted">Optional, falls du es gleich weißt:</div>
+      <div class="form" style="grid-template-columns:1fr 1fr"><label class="f"><span>Betrag €</span><input id="cq-amount" inputmode="decimal" placeholder="z. B. 84,37"></label><label class="f"><span>Bezahlt</span><select id="cq-pm"><option value="karte">mit Karte</option><option value="bar">bar</option><option value="ueberweisung">offen / Überweisung</option></select></label></div>
+      <div class="catpick">${QUICK_CATS.map(k => `<button data-act="cqCat" data-cat="${k}" class="${(st.cq || "") === k ? "on" : ""}">${QUICK_LABEL[k]}</button>`).join("")}</div>
+      <label class="f"><span>Notiz</span><input id="cq-note" placeholder="z. B. Baustelle Müller"></label>
+      <button class="btn pri big" data-act="cqSave">${left ? `Weiter (noch ${left})` : "Fertig"}</button>
+      <button class="btn" data-act="snap">Nächstes Foto</button>
+    </div>`;
+  else if (st.ai === "err") body = `<div class="result"><div class="note bad small">Auslesen hat nicht geklappt (${esc(st.aiErr || "")}). Das Bild ist aber schon gespeichert.</div><button class="btn pri big" data-act="capEdit">Selbst ausfüllen</button><button class="btn" data-act="capRetry">Nochmal versuchen</button></div>`;
+  else body = `<div class="result">
+      <div class="top">${catIcon(cat, inc)}<div style="min-width:0"><div class="vendor">${esc(unent(v.vendor) || "Unbekannt")}</div><div class="small muted">${esc(v.note || catLabel(cat))}</div></div></div>
+      <div class="amount">${eur(g)}</div>
+      ${dup ? `<div class="note bad small">Sieht doppelt aus: ${esc(vendorName(dup))} vom ${fmtDate(dup.date)} über ${eur(vGross(dup))} ist schon erfasst.</div>` : ""}
+      <div class="facts">
+        <div><small>Datum</small><b>${fmtDate(v.date)}</b></div>
+        <div><small>Status</small><b>${v.status === "bezahlt" ? "bezahlt" + (v.payMethod === "bar" ? " (bar)" : v.payMethod === "karte" ? " (Karte)" : "") : "noch offen" + (v.dueDate ? ", fällig " + fmtDate(v.dueDate) : "")}</b></div>
+        <div><small>Netto</small><b>${eur(x.net)}</b></div>
+        <div><small>MwSt. ${esc(vats)}${inc ? "" : " (holst du zurück)"}</small><b>${eur(x.tax)}</b></div>
+      </div>
+      <div><div class="small muted" style="margin-bottom:6px">Kategorie</div><div class="catpick">${QUICK_CATS.map(k => `<button data-act="capCat" data-cat="${k}" class="${cat === k ? "on" : ""}">${QUICK_LABEL[k]}</button>`).join("")}${QUICK_CATS.includes(cat) ? "" : `<button class="on">${esc(catLabel(cat))}</button>`}</div></div>
+      ${st.aiConf === "niedrig" ? `<div class="note small">Ich war mir nicht ganz sicher. Schau bitte kurz auf Betrag und Datum.</div>` : ""}
+      <button class="btn pri big" data-act="saveVoucher">${dup ? "Trotzdem speichern" : "Passt – speichern"}${left ? ` (noch ${left})` : ""}</button>
+      <button class="btn" data-act="capEdit">Etwas ändern</button>
+    </div>`;
+  return `<div class="sheet-head"><h2>${st.ai === "done" ? "Erkannt" : "Neuer Beleg"}</h2><button class="btn" data-act="closeSheet">${st.ai === "busy" ? "Abbrechen" : "Verwerfen"}</button></div>
+  <div class="sheet-body"><div class="cap">${body}${photo}</div></div>`;
+}
+function sheetVoucher() {
+  const st = UI.sheet; if (st.capture && !st.expand) return sheetCapture();
+  const v = st.d; const g = vGross(v); const dup = findDuplicate(v);
+  const items = v.items.map((it, i) => { const x = vItemSplit({ cat: it.cat, vat: it.vat, gross: it.gross }); return `<tr>
+    <td style="min-width:210px"><select id="vi-cat-${i}" data-vi="${i}" data-f="cat">${catOptions(it.cat, v.kind)}</select></td>
+    <td style="width:90px"><select id="vi-vat-${i}" data-vi="${i}" data-f="vat">${[19, 7, 0].map(x => `<option value="${x}" ${Number(it.vat) === x ? "selected" : ""}>${x} %</option>`).join("")}</select></td>
+    <td style="width:120px"><input id="vi-gross-${i}" data-vi="${i}" data-f="gross" value="${esc(fmtNum(it.gross))}" inputmode="decimal"></td>
+    <td class="num small muted" style="width:150px">netto ${eur(x.net)}<br>MwSt. ${eur(x.tax)}</td>
+    <td style="width:36px">${v.items.length > 1 ? `<button class="btn sm" data-act="rmVItem" data-i="${i}" aria-label="Zeile löschen">✕</button>` : ""}</td></tr>`; }).join("");
+  return `<div class="sheet-head"><h2>${st.isNew ? "Beleg erfassen" : "Beleg"} ${esc(v.number || "")}</h2>${vChip(v)}
+    <button class="btn pri" data-act="saveVoucher">${v.status === "pruefen" ? "Übernehmen" : "Speichern"}</button><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="split">
+    <div class="grid" style="align-content:start">
+      ${st.ai === "busy" ? `<div class="note"><span class="spin"></span> Ich lese den Beleg …</div>` : ""}
+      ${st.ai === "done" ? `<div class="note small">Ausgelesen${st.aiConf ? ` (Sicherheit: ${esc(st.aiConf)})` : ""}${st.einv ? " · E-Rechnung erkannt, Beträge exakt aus der XML" : ""}. Bitte kurz prüfen und speichern.</div>` : ""}
+      ${st.ai === "err" ? `<div class="note bad small">Automatisches Auslesen hat nicht geklappt (${esc(st.aiErr || "")}). Bitte die Felder selbst ausfüllen.</div>` : ""}
+      ${v.question ? `<div class="note small"><b>Frage von Claude:</b> ${esc(v.question)}<br>Trag die Antwort einfach unten ein und speichere.</div>` : ""}
+      ${v.status === "claude" && !v.question ? `<div class="note small">Dieser Beleg wartet darauf, dass Claude ihn ausliest. Du kannst ihn auch selbst ausfüllen.</div>` : ""}
+      ${dup ? `<div class="note bad small">Achtung, möglicherweise doppelt: ${esc(vendorName(dup))} ${esc(dup.number || "")} vom ${fmtDate(dup.date)} über ${eur(vGross(dup))}. <a href="#" data-act="openVoucher" data-id="${dup.id}">Ansehen</a></div>` : ""}
+      <div class="card"><div class="form">
+        <label class="f"><span>Art</span><select id="v-kind" data-vf="kind">${Object.entries(V_KIND).map(([k, l]) => `<option value="${k}" ${v.kind === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="f"><span>Firma</span><input id="v-vendor" data-vf="vendor" value="${esc(unent(v.vendor))}" list="vendors"></label>
+        <label class="f"><span>Belegnummer</span><input id="v-number" data-vf="number" value="${esc(v.number)}"></label>
+        <label class="f"><span>Belegdatum</span><input type="date" id="v-date" data-vf="date" value="${esc(v.date)}"></label>
+        <label class="f"><span>Status</span><select id="v-status" data-vf="status">${["bezahlt", "offen", ...(v.status === "pruefen" ? ["pruefen"] : []), ...(v.status === "claude" ? ["claude"] : []), "storniert"].map(s => `<option value="${s}" ${v.status === s ? "selected" : ""}>${V_STATUS[s][0]}</option>`).join("")}</select></label>
+        <label class="f"><span>Bezahlt am</span><input type="date" id="v-paid" data-vf="paidDate" value="${esc(v.paidDate || "")}"></label>
+        <label class="f"><span>Fällig am</span><input type="date" id="v-due" data-vf="dueDate" value="${esc(v.dueDate || "")}"></label>
+        <label class="f"><span>Zahlart</span><select id="v-pm" data-vf="payMethod">${[["karte", "Karte (N26)"], ["ueberweisung", "Überweisung"], ["lastschrift", "Lastschrift"], ["bar", "Bar"], ["privat", "Privat bezahlt"]].map(([k, l]) => `<option value="${k}" ${v.payMethod === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="f wide"><span>Notiz (was wurde gekauft?)</span><input id="v-note" data-vf="note" value="${esc(v.note || "")}"></label>
+      </div><datalist id="vendors">${[...new Set([...S.vouchers.values()].map(vendorName))].sort().map(n => `<option value="${esc(n)}">`).join("")}</datalist></div>
+      <div class="tbl-wrap"><table class="items"><thead><tr><th>Kategorie</th><th>MwSt.</th><th>Brutto €</th><th class="num">Aufteilung</th><th></th></tr></thead><tbody>${items}</tbody></table>
+        <div class="row" style="padding:10px;justify-content:space-between"><button class="btn sm" data-act="addVItem">+ weitere Zeile (anderer Steuersatz/Kategorie)</button><b class="num">Summe ${eur(g)}</b></div></div>
+      ${!st.isNew ? `<div class="row"><button class="btn danger" data-act="deleteVoucher">Beleg löschen</button></div>` : ""}
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="preview" id="vprev">${v.files?.length ? '<span class="spin"></span>' : `<div class="drop" data-act="attachFile" style="border:0;width:100%"><b>Belegbild hinzufügen</b><div class="small muted">Foto oder PDF</div></div>`}</div>
+      ${v.files?.length ? `<div class="row">${v.files.map((f, i) => `<button class="btn sm" data-act="showFile" data-i="${i}">${esc(f.name || "Datei " + (i + 1))}</button>`).join("")}<a class="btn sm" href="_blob/${esc(v.files[0].id)}" target="_blank" rel="noopener">Original öffnen</a><button class="btn sm" data-act="attachFile">+ Seite</button></div>` : ""}
+    </div></div></div>`;
+}
+function readVoucherForm() {
+  const v = UI.sheet.d; const sh = $("#sheet");
+  $$("[data-vf]", sh).forEach(el => { v[el.dataset.vf] = el.value; });
+  $$("[data-vi]", sh).forEach(el => { const it = v.items[Number(el.dataset.vi)]; if (!it) return; const f = el.dataset.f; it[f] = f === "gross" ? parseNum(el.value) : f === "vat" ? Number(el.value) : el.value; delete it.net; delete it.tax; });
+  return v;
+}
+async function saveVoucher() {
+  const v = (UI.sheet.capture && !UI.sheet.expand) ? UI.sheet.d : readVoucherForm();
+  if (!v.vendor && v.status !== "claude") { toast("Bitte die Firma eintragen."); return; }
+  if (!vGross(v) && v.status !== "claude") { toast("Bitte den Betrag eintragen."); return; }
+  if (v.status === "pruefen" || (v.status === "claude" && (UI.sheet.expand || (v.vendor && vGross(v))))) { v.status = v.paidDate ? "bezahlt" : "offen"; delete v.question; }
+  if (v.status === "bezahlt" && !v.paidDate) v.paidDate = v.date;
+  if (v.status !== "bezahlt") delete v.paidDate;
+  v.items = v.items.map(i => { const x = vItemSplit({ vat: i.vat, gross: i.gross }); return { cat: i.cat, vat: Number(i.vat), gross: r2(i.gross), net: x.net, tax: x.tax }; });
+  v.gross = vGross(v);
+  const keep = (v.payments || []).length && Math.abs(paidSum(v) - v.gross) < 0.011;
+  v.payments = v.status === "bezahlt" ? (keep ? v.payments : [{ date: v.paidDate, amount: v.gross, method: v.payMethod }]) : (v.status === "offen" ? (v.payments || []).filter(p => p.bankId && paidSum(v) < v.gross) : []);
+  v.updatedAt = new Date().toISOString();
+  await put("vouchers", v.id, v); toast(`Gespeichert: ${vendorName(v)} ${eur(v.gross)}`);
+  if (v.items?.[0]?.cat) { const vm = { ...(S.company?.vendorCats || {}) }; const key = vendorName(v).toLowerCase().slice(0, 40); if (vm[key] !== v.items[0].cat) { vm[key] = v.items[0].cat; saveCompany({ vendorCats: vm }).catch(() => { }); } }
+  const queue = UI.sheet.queue; closeSheet(); if (queue && queue.length) processQueue(queue);
+}
+
+/* ---- Stapel-/Ordner-Import: alles speichern, Doppelte überspringen, Claude liest aus ---- */
+const BULK = { running: false, done: 0, total: 0, dup: 0, err: 0, added: 0 };
+async function bulkImport(files) {
+  if (!files.length) return; if (BULK.running) { toast("Ein Import läuft schon."); return; }
+  Object.assign(BULK, { running: true, done: 0, total: files.length, dup: 0, err: 0, added: 0 }); location.hash = "belege"; render();
+  for (const f of files) {
+    try {
+      const hash = await fileHash(f); if (findFileByHash(hash)) { BULK.dup++; }
+      else {
+        const up = await assets.upload(f); const v = blankVoucher(); v.status = "claude"; v.vendor = ""; v.items = [{ cat: "OtherExpenditure", vat: 19, gross: 0 }]; v.files = [{ id: up.id, name: f.name, type: f.type, hash }]; v.source = "ordner"; v.note = (f.webkitRelativePath || f.name).slice(0, 120); v.capturedAt = new Date().toISOString();
+        if (/\.xml$/i.test(f.name) || /pdf/.test(f.type)) { try { const res = await extractVoucher(f); if (res) { Object.assign(v, res.fields); v.status = res.fields.status || "offen"; } } catch (e) { } }
+        await put("vouchers", v.id, v); BULK.added++;
+      }
+    } catch (e) { console.warn(e); BULK.err++; }
+    BULK.done++; if (BULK.done % 2 === 0) render();
+  }
+  BULK.running = false; render(); toast(`${BULK.added} Belege übernommen${BULK.dup ? `, ${BULK.dup} doppelte übersprungen` : ""}${BULK.err ? `, ${BULK.err} Fehler` : ""}. Claude liest sie beim nächsten Check aus.`, 7000);
+}
+
+/* ---- Claude prüfen lassen ---- */
+function claudeCheckPrompt() {
+  const waiting = [...S.vouchers.values()].filter(v => v.status === "claude").length;
+  return `Bitte prüfe meine Buchhaltung „Labertal Buchhaltung“ jetzt einmal komplett (Prüfanleitung: PRUEFUNG.md im Repo abdullahelmashharawi-bot/labertal-buchhaltung; Daten: Supabase-Projekt labertal-buchhaltung, Tabelle public.docs; Belegbilder: privates Repo abdullahelmashharawi-bot/labertal-belege, Ordner dateien/). ${waiting} Belege warten darauf, dass du sie ausliest. Buche sichere Belege direkt, frag mich bei unsicheren. Schreib danach das Ergebnis in cfg/check und fass es mir kurz zusammen.`;
+}
+function openClaudeCheck() { const url = "https://claude.ai/new?q=" + encodeURIComponent(claudeCheckPrompt()); const w = window.open(url, "_blank"); if (!w) location.href = url; }
+
+/* ---- Datei-Erfassung mit KI ---- */
+async function handleFiles(files) {
+  files = [...files]; if (!files.length) return;
+  if (!assets) { toast("Datei-Upload ist in dieser Ansicht nicht verfügbar."); return; }
+  processQueue(files);
+}
+async function processQueue(queue) {
+  const f = queue.shift(); if (!f) return;
+  const v = blankVoucher(); openVoucherEditor(v, true, { ai: "busy", queue, capture: true, file: f });
+  try {
+    const hash = await fileHash(f); const dupV = findFileByHash(hash);
+    if (dupV) { UI.sheet.ai = "dupfile"; UI.sheet.dupOf = dupV.id; renderSheet(); return; }
+    try { const up = await assets.upload(f); v.files = [{ id: up.id, name: f.name, type: f.type || up.contentType, hash }]; }
+    catch (e) { if (!/\.xml$/i.test(f.name)) throw e; v.files = []; }
+    UI.sheet.d.files = v.files; renderSheet(); if (v.files[0]) renderFilePreview(v.files[0]);
+    if (UI.sheet?.d.id !== v.id) return;
+    const res = await extractVoucher(f);
+    if (UI.sheet?.d.id !== v.id) return;
+    if (!res) { const d = UI.sheet.d; d.status = "claude"; d.items = [{ cat: "OtherExpenditure", vat: 19, gross: 0 }]; d.vendor = ""; d.capturedAt = new Date().toISOString(); await put("vouchers", d.id, d); UI.sheet.ai = "claude"; renderSheet(); renderFilePreview(d.files[0]); return; }
+    const d = UI.sheet.d; Object.assign(d, res.fields); UI.sheet.ai = "done"; UI.sheet.aiConf = res.conf; UI.sheet.einv = res.einv; renderSheet(); renderFilePreview(d.files[0]);
+  } catch (e) { console.warn(e); if (UI.sheet?.d.id === v.id) { UI.sheet.ai = "err"; UI.sheet.aiErr = e?.message || e?.code || String(e); renderSheet(); if (UI.sheet.d.files?.[0]) renderFilePreview(UI.sheet.d.files[0]); } }
+}
+async function fileToImages(file, maxPages = 3) {
+  const imgs = []; if (!sample) maxPages = 0;
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    let einvXml = null;
+    try { const att = await pdf.getAttachments(); if (att) for (const k in att) { const a = att[k]; if (/\.xml$/i.test(a.filename || k)) { einvXml = new TextDecoder().decode(a.content); break; } } } catch (e) { }
+    for (let p = 1; p <= Math.min(pdf.numPages, maxPages); p++) { const page = await pdf.getPage(p); const vp = page.getViewport({ scale: 1 }); const sc = Math.min(2, 1600 / Math.max(vp.width, vp.height)); const v2 = page.getViewport({ scale: sc }); const cv = document.createElement("canvas"); cv.width = v2.width; cv.height = v2.height; await page.render({ canvasContext: cv.getContext("2d"), viewport: v2 }).promise; imgs.push(await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85))); }
+    return { imgs, einvXml };
+  }
+  if (/xml/.test(file.type) || /\.xml$/i.test(file.name)) return { imgs: [], einvXml: await file.text() };
+  if (!sample) return { imgs, einvXml: null };
+  const bmp = await createImageBitmap(file); const sc = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)); const cv = document.createElement("canvas"); cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+  imgs.push(await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85))); return { imgs, einvXml: null };
+}
+function parseEInvoice(xml) {
+  const doc = new DOMParser().parseFromString(xml, "application/xml"); const all = (n, el = doc) => [...el.getElementsByTagNameNS("*", n)]; const one = (n, el = doc) => all(n, el)[0]?.textContent?.trim() || "";
+  const ymd = s => s && s.length === 8 ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6) : (s || "").slice(0, 10);
+  if (all("CrossIndustryInvoice").length) {
+    const seller = all("SellerTradeParty")[0]; const sett = all("ApplicableHeaderTradeSettlement")[0];
+    const taxes = sett ? [...sett.children].filter(c => c.localName === "ApplicableTradeTax") : [];
+    return { vendor: one("Name", seller), number: one("ID", all("ExchangedDocument")[0]), date: ymd(one("DateTimeString", all("IssueDateTime")[0])), dueDate: ymd(one("DateTimeString", all("DueDateDateTime")[0])), typeCode: one("TypeCode", all("ExchangedDocument")[0]),
+      taxes: taxes.map(t => ({ vat: parseFloat(one("RateApplicablePercent", t) || "0"), net: parseFloat(one("BasisAmount", t) || "0"), tax: parseFloat(one("CalculatedAmount", t) || "0") })), grand: parseFloat(one("GrandTotalAmount") || "0"), lines: all("IncludedSupplyChainTradeLineItem").map(l => one("Name", l)).filter(Boolean) };
+  }
+  if (all("Invoice").length || all("CreditNote").length) {
+    const sup = all("AccountingSupplierParty")[0];
+    const rootId = [...doc.documentElement.children].find(c => c.localName === "ID")?.textContent?.trim() || "";
+    return { vendor: one("RegistrationName", sup) || one("Name", sup), number: rootId, date: one("IssueDate"), dueDate: one("DueDate"), typeCode: one("InvoiceTypeCode"),
+      taxes: all("TaxSubtotal").map(t => ({ vat: parseFloat(one("Percent", t) || "0"), net: parseFloat(one("TaxableAmount", t) || "0"), tax: parseFloat(one("TaxAmount", t) || "0") })), grand: parseFloat(one("PayableAmount") || one("TaxInclusiveAmount") || "0"), lines: all("InvoiceLine").map(l => one("Name", l)).filter(Boolean) };
+  }
+  return null;
+}
+function vendorHistory() {
+  const m = new Map(); const list = [...S.vouchers.values()].filter(v => v.status !== "pruefen" && v.status !== "storniert").sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  for (const v of list) { const n = vendorName(v); if (!m.has(n) && v.items?.[0]) m.set(n, canon(v.items[0].cat)); } return [...m.entries()].slice(0, 60);
+}
+async function extractVoucher(file) {
+  const { imgs, einvXml } = await fileToImages(file);
+  let ein = null; if (einvXml) { try { ein = parseEInvoice(einvXml); } catch (e) { } }
+  const hist = vendorHistory(); const histMap = new Map(hist);
+  const catList = Object.entries(CATS).filter(([, c]) => !c.alias && c.group !== "anlage").map(([k, c]) => `${k} = ${c.label}`).join("\n");
+  let ai = null;
+  if (sample && (imgs.length || ein)) {
+    const lim = await sample.limits?.().catch(() => null);
+    const canImg = !!lim?.images;
+    if (!canImg && !ein) throw new Error("Bilderkennung in dieser Ansicht nicht verfügbar");
+    const prompt = `Du bist Buchhalter für einen kleinen Elektro-Handwerksbetrieb in Bayern (Elektrotechnik Labertal, Inhaber Abdullah El Mashharawi, Regelbesteuerung, EÜR). Lies den Beleg und gib NUR JSON zurück, ohne Text davor oder danach.
+Schema: {"art":"ausgabe|einnahme|ausgabenminderung","firma":"Name des Ausstellers (nicht Elektrotechnik Labertal)","belegnummer":"","datum":"YYYY-MM-DD","faellig":"YYYY-MM-DD oder null","bezahlt":true|false,"zahlart":"karte|bar|ueberweisung|lastschrift|unbekannt","positionen":[{"kategorie":"<Schlüssel>","ust":19|7|0,"brutto":Zahl}],"notiz":"max. 8 Wörter, was gekauft wurde","sicherheit":"hoch|mittel|niedrig"}
+Regeln: Pro Steuersatz eine Position (Bruttobeträge, Summe = Rechnungsbetrag). Kassenbon mit Kartenzahlung/EC/Bar = bezahlt true. Rechnung mit Zahlungsziel/Überweisung = bezahlt false, ausser "bereits bezahlt"/"Betrag dankend erhalten"/Lastschrift-Hinweis. Tankstelle Kraftstoff = Fuel (Shop-Artikel wie Snacks = PrivateWithdrawal mit ust 0 ... nur wenn eindeutig privat). Elektromaterial/Kabel/Baumarktmaterial für Baustellen = MaterialsGoods. Werkzeug/Geräte = SmallParts. Restaurant/Bewirtung = EntertainmentExpenses. Versicherungen haben 0 % USt. Lexware/Haufe/Software = LicencesConcessions. Wenn Gutschrift/Erstattung an uns: art=ausgabenminderung.
+Kategorien:\n${catList}
+Bisherige Zuordnung dieser Firmen (bevorzugen): ${hist.map(([n, c]) => n + " → " + c).join("; ")}
+${ein ? "Die E-Rechnung enthält: " + JSON.stringify({ firma: ein.vendor, nr: ein.number, datum: ein.date, positionen: ein.lines.slice(0, 15) }) : ""}`;
+    const input = [{ role: "user", content: prompt }];
+    const opts = canImg && imgs.length ? { images: imgs.slice(0, lim.images.maxCount || 3), modelTier: "default" } : { modelTier: "default" };
+    try { ai = await sample.json(input, opts); }
+    catch (e) {
+      if (e?.code === "invalid_json" && e.text) { const m = e.text.match(/\{[\s\S]*\}/); try { ai = m ? JSON.parse(m[0]) : null; } catch (x) { ai = null; } }
+      else if (!ein) { const why = { not_granted: "KI-Erkennung nicht freigegeben", rate_limited: "zu viele Anfragen, bitte gleich nochmal", refused: "Beleg abgelehnt", image_rejected: "Bild nicht lesbar" }[e?.code]; throw new Error(why || e?.message || e?.code || "unbekannter Fehler"); }
+    }
+  }
+  const f = {};
+  if (ai) {
+    f.kind = ["ausgabe", "einnahme", "ausgabenminderung", "einnahmenminderung"].includes(ai.art) ? ai.art : "ausgabe";
+    f.vendor = ai.firma || ""; f.number = ai.belegnummer || ""; if (/^\d{4}-\d{2}-\d{2}$/.test(ai.datum || "")) f.date = ai.datum;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ai.faellig || "")) f.dueDate = ai.faellig; else f.dueDate = f.date || todayISO();
+    f.status = ai.bezahlt ? "bezahlt" : "offen"; f.paidDate = ai.bezahlt ? (f.date || todayISO()) : ""; f.payMethod = { karte: "karte", bar: "bar", ueberweisung: "ueberweisung", lastschrift: "lastschrift" }[ai.zahlart] || "karte";
+    const items = (ai.positionen || []).filter(p => Number(p.brutto)).map(p => ({ cat: CATS[p.kategorie] ? p.kategorie : "OtherExpenditure", vat: [19, 7, 0].includes(Number(p.ust)) ? Number(p.ust) : 19, gross: r2(Number(p.brutto)) }));
+    if (items.length) f.items = items; f.note = ai.notiz || "";
+    const known = (S.company?.vendorCats || {})[(f.vendor || "").toLowerCase().slice(0, 40)] || histMap.get(f.vendor); if (known && f.items?.length === 1 && CATS[known]) f.items[0].cat = known;
+  }
+  if (ein) {
+    f.vendor = ein.vendor || f.vendor; f.number = ein.number || f.number; f.date = ein.date || f.date; f.dueDate = ein.dueDate || f.dueDate || f.date;
+    const cat = f.items?.[0]?.cat || histMap.get(ein.vendor) || "OtherExpenditure";
+    if (ein.taxes.length) f.items = ein.taxes.map(t => ({ cat, vat: Math.round(t.vat), gross: r2(t.net + t.tax), net: r2(t.net), tax: r2(t.tax) }));
+    if (ein.typeCode === "381") f.kind = "ausgabenminderung";
+    if (!ai) { f.status = "offen"; f.paidDate = ""; }
+  }
+  if (!ai && !ein) return null;
+  return { fields: f, conf: ai?.sicherheit, einv: !!ein };
+}
+async function renderFilePreview(file) {
+  const el = $("#vprev"); if (!el || !file) return;
+  try {
+    const isPdf = /pdf/.test(file.type || "") || /\.pdf$/i.test(file.name || "");
+    if (!isPdf) { el.innerHTML = `<img src="_blob/${esc(file.id)}" alt="Belegbild">`; return; }
+    const buf = await (await fetch("_blob/" + file.id)).arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    el.innerHTML = ""; for (let p = 1; p <= Math.min(pdf.numPages, 3); p++) { const page = await pdf.getPage(p); const vp = page.getViewport({ scale: 1.4 }); const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height; await page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise; if ($("#vprev") !== el) return; el.appendChild(cv); }
+    el.style.flexDirection = "column";
+  } catch (e) { el.innerHTML = `<div class="empty">Vorschau nicht möglich. <a href="_blob/${esc(file.id)}" target="_blank" rel="noopener">Original öffnen</a></div>`; }
+}
+
+/* ===================== Bank ===================== */
+function viewBank() {
+  const all = [...S.bank.values()].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const t = UI.bankTab; let list = t === "offen" ? all.filter(b => !b.link && !b.cat) : t === "zugeordnet" ? all.filter(b => b.link || b.cat) : all;
+  const q = UI.search.toLowerCase(); if (q) list = list.filter(b => (b.partner + " " + b.ref + " " + b.text + " " + fmtNum(b.amount)).toLowerCase().includes(q));
+  const sugg = list.filter(b => !b.link && !b.cat).map(b => [b, suggestFor(b)]).filter(x => x[1]);
+  const last = all.filter(b => b.source === "n26")[0];
+  return `<div class="head"><h1>Bank</h1><button class="btn pri" data-act="importCsv">N26-Export (CSV) einlesen</button></div>
+  <div class="card small" style="margin-bottom:14px">So geht's: In der N26-App oder im Browser unter <b>Konto → Kontoauszüge → CSV-Export</b> den Zeitraum wählen und die Datei hier einlesen. Doppelte Umsätze werden erkannt. ${last ? `Letzter eingelesener Umsatz: ${fmtDate(last.date)}.` : "Noch keine N26-Datei eingelesen. Lexware hat bis heute zugeordnet."}</div>
+  ${sugg.length ? `<div class="note" style="margin-bottom:14px"><b>${sugg.length} Vorschläge</b> gefunden (Betrag passt zu offener Rechnung/Ausgabe). <button class="btn sm pri" data-act="acceptAll">Alle übernehmen</button></div>` : ""}
+  <div class="toolbar"><div class="tabs" style="margin:0">${[["offen", "Nicht zugeordnet"], ["zugeordnet", "Zugeordnet"], ["alle", "Alle"]].map(([k, l]) => `<button data-act="btab" data-tab="${k}" class="${k === t ? "on" : ""}">${l}</button>`).join("")}</div>
+  <input id="search" placeholder="Suchen" value="${esc(UI.search)}" style="max-width:260px" data-inp="search"></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th>Empfänger / Auftraggeber</th><th>Verwendungszweck</th><th class="num">Betrag</th><th>Zuordnung</th></tr></thead><tbody>
+  ${list.slice(0, 400).map(b => { const s = !b.link && !b.cat ? suggestFor(b) : null; return `<tr><td>${fmtDate(b.date)}</td><td>${esc(b.partner || "")}</td><td class="small">${esc(b.ref || b.text || "")}</td><td class="num" style="color:${b.amount < 0 ? "var(--bad)" : "var(--good)"}">${eur(b.amount)}</td>
+    <td>${b.link ? `<a href="#" data-act="openLink" data-id="${b.id}">${esc(linkLabel(b.link))}</a> <button class="btn sm" data-act="unlinkBank" data-id="${b.id}">lösen</button>` : b.cat ? `<span class="chip">${esc(catLabel(b.cat))}</span> <button class="btn sm" data-act="assignBank" data-id="${b.id}">ändern</button>` :
+      `${s ? `<button class="btn sm pri" data-act="acceptSugg" data-id="${b.id}">${esc(s.label)}</button> ` : ""}<button class="btn sm" data-act="assignBank" data-id="${b.id}">zuordnen</button>`}</td></tr>`; }).join("") || `<tr><td colspan="5" class="empty">Nichts offen</td></tr>`}
+  </tbody></table></div>`;
+}
+function linkLabel(l) { const d = S[l.col]?.get(l.id); if (!d) return "Beleg"; return l.col === "sales" ? d.number + " " + salesName(d) : vendorName(d) + " " + (d.number || ""); }
+function openCandidates(b) {
+  const amt = Math.abs(b.amount); const out = [];
+  if (b.amount > 0) { for (const d of S.sales.values()) if (d.kind === "rechnung" && d.status === "offen" && Math.abs(openAmount(d) - amt) < 0.011) out.push({ col: "sales", id: d.id, label: d.number + " " + salesName(d), score: (b.ref || "").includes(d.number) ? 2 : 1 }); }
+  for (const v of S.vouchers.values()) { if (v.status !== "offen" && v.status !== "pruefen") continue; const inc = INCOME_KINDS.includes(v.kind) ? 1 : -1; const s = sgnV(v) * inc; if (Math.sign(b.amount) !== s) continue; if (Math.abs(vGross(v) - amt) < 0.011) out.push({ col: "vouchers", id: v.id, label: vendorName(v) + " " + (v.number || fmtDate(v.date)), score: ((b.ref || "").includes(v.number || "§§") ? 2 : 1) - (v.status === "pruefen" ? 0.5 : 0) }); }
+  return out.sort((a, b) => b.score - a.score);
+}
+function suggestFor(b) { const c = openCandidates(b); if (c.length && (c.length === 1 || c[0].score > c[1].score)) return { type: "link", ...c[0], label: "→ " + c[0].label }; return null; }
+async function linkBank(b, target) {
+  const d = S[target.col].get(target.id); if (!d) return;
+  const pays = [...(d.payments || []), { date: b.date, amount: Math.abs(b.amount), bankId: b.id }];
+  const gross = target.col === "sales" ? docGross(d) : vGross(d); const paid = r2(pays.reduce((a, p) => a + p.amount, 0));
+  const upd = { payments: pays }; if (paid >= gross - 0.01) { upd.status = "bezahlt"; upd.paidDate = b.date; }
+  await patch(target.col, target.id, upd); await patch("bank", b.id, { link: { col: target.col, id: target.id } });
+}
+async function unlinkBank(b) {
+  const l = b.link; const d = l && S[l.col]?.get(l.id);
+  if (d) { const pays = (d.payments || []).filter(p => p.bankId !== b.id); const gross = l.col === "sales" ? docGross(d) : vGross(d); const paid = r2(pays.reduce((a, p) => a + p.amount, 0));
+    await put(l.col, d.id, { ...d, payments: pays, status: paid >= gross - 0.01 ? "bezahlt" : "offen", paidDate: paid >= gross - 0.01 ? d.paidDate : "" }); }
+  const nb = { ...b }; delete nb.link; await put("bank", b.id, nb);
+}
+function parseCsv(text) {
+  text = text.replace(/^﻿/, ""); const first = text.split(/\r?\n/)[0]; const delim = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ";" : ",";
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) { const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true; else if (ch === delim) { row.push(cur); cur = ""; } else if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; } else if (ch !== "\r") cur += ch; }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+async function importBankCsv(file) {
+  const rows = parseCsv(await file.text()); const H = rows.shift().map(h => h.trim().toLowerCase());
+  const col = (...names) => H.findIndex(h => names.some(n => h === n || h.startsWith(n)));
+  const iD = col("booking date", "datum", "buchungstag", "date"), iP = col("partner name", "empfänger", "payee", "zahlungsempfänger"), iI = col("partner iban", "kontonummer", "account number", "iban"),
+    iR = col("payment reference", "verwendungszweck", "referenz"), iA = col("amount (eur)", "betrag (eur)", "betrag", "amount"), iT = col("type", "transaktionstyp", "transaction type");
+  if (iD < 0 || iA < 0) { toast("Unbekanntes CSV-Format. Bitte den N26-Export verwenden."); return; }
+  const existing = new Set([...S.bank.values()].map(b => b.hash)); let added = 0, skipped = 0;
+  for (const r of rows) {
+    let date = (r[iD] || "").trim(); if (/^\d{2}\.\d{2}\.\d{4}$/.test(date)) date = date.slice(6) + "-" + date.slice(3, 5) + "-" + date.slice(0, 2); if (!/^\d{4}-\d{2}-\d{2}/.test(date)) continue; date = date.slice(0, 10);
+    const rawA = (r[iA] || "").trim(); const amount = r2(/,\d{1,2}$/.test(rawA) ? parseNum(rawA) : parseFloat(rawA)); if (!amount) continue;
+    const b = { date, amount, partner: (r[iP] || "").trim(), iban: iI >= 0 ? (r[iI] || "").trim() : "", ref: iR >= 0 ? (r[iR] || "").trim() : "", type: iT >= 0 ? (r[iT] || "").trim() : "", source: "n26" };
+    b.hash = [b.date, b.amount, b.partner, b.ref].join("|"); if (existing.has(b.hash)) { skipped++; continue; } existing.add(b.hash);
+    await put("bank", uid(), b); added++;
+  }
+  toast(`${added} neue Umsätze eingelesen${skipped ? `, ${skipped} schon vorhanden` : ""}.`, 5000);
+}
+function assignBankSheet(b) {
+  UI.sheet = { type: "bank", d: { ...b } }; renderSheet();
+}
+function sheetBank() {
+  const b = UI.sheet.d; const cands = openCandidates(b);
+  const any = [...S.sales.values()].filter(d => d.kind === "rechnung" && d.status === "offen").map(d => ({ col: "sales", id: d.id, label: `${d.number} ${salesName(d)} (${eur(openAmount(d))})` }))
+    .concat([...S.vouchers.values()].filter(v => v.status === "offen").map(v => ({ col: "vouchers", id: v.id, label: `${vendorName(v)} ${v.number || ""} ${fmtDate(v.date)} (${eur(vGross(v))})` })));
+  return `<div class="sheet-head"><h2>Umsatz zuordnen</h2><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="card"><b>${fmtDate(b.date)} · ${esc(b.partner || "")} · <span style="color:${b.amount < 0 ? "var(--bad)" : "var(--good)"}">${eur(b.amount)}</span></b><div class="small muted">${esc(b.ref || b.text || "")}</div></div>
+  ${cands.length ? `<div class="card"><h3>Passende offene Belege</h3><div class="grid" style="margin-top:8px">${cands.map(c => `<button class="btn" data-act="linkTo" data-col="${c.col}" data-id="${c.id}">${esc(c.label)}</button>`).join("")}</div></div>` : ""}
+  <div class="card"><h3>Mit offenem Beleg verbinden</h3><div class="row" style="margin-top:8px"><select id="bk-any" style="flex:1"><option value="">– auswählen –</option>${any.map(a => `<option value="${a.col}:${a.id}">${esc(a.label)}</option>`).join("")}</select><button class="btn" data-act="linkAny">Verbinden</button></div></div>
+  <div class="card"><h3>Ohne Beleg buchen</h3><p class="small muted">Für Privatentnahmen, Gebühren, Kfz-Steuer, Zahlungen ans Finanzamt usw.</p><div class="form">
+    <label class="f"><span>Kategorie</span><select id="bk-cat">${catOptions(b.cat || (b.amount > 0 ? "PrivateDeposit" : "PrivateWithdrawal"), b.amount > 0 ? "einnahme" : "ausgabe")}</select></label>
+    <label class="f"><span>MwSt. enthalten</span><select id="bk-vat">${[0, 19, 7].map(x => `<option value="${x}" ${Number(b.vat || 0) === x ? "selected" : ""}>${x} %</option>`).join("")}</select></label></div>
+    <div class="row" style="margin-top:10px"><button class="btn pri" data-act="bankCat">Buchen</button>${b.cat ? `<button class="btn" data-act="bankUncat">Zuordnung entfernen</button>` : ""}</div>
+    <p class="small muted">Für eine Ausgabe mit Kassenbon besser „Beleg erfassen“ nutzen und dann hier verbinden.</p></div></div>`;
+}
+
+/* ===================== Steuer ===================== */
+function periodRange(y, m, quarter) { if (quarter) { const sm = (quarter - 1) * 3 + 1; return { from: `${y}-${String(sm).padStart(2, "0")}-01`, to: lastDay(y, sm + 2), key: `${y}-Q${quarter}`, label: `${quarter}. Quartal ${y}` }; } return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: lastDay(y, m), key: `${y}-${String(m).padStart(2, "0")}`, label: `${MONTHS[m - 1]} ${y}` }; }
+function lastDay(y, m) { const d = new Date(y, m, 0); return `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function viewTax() {
+  const y = UI.taxYear; const now = new Date(); const curM = y === now.getFullYear() ? now.getMonth() + 1 : 12;
+  const m = UI.taxMonth || (y === now.getFullYear() ? Math.max(1, now.getMonth()) : 12);
+  const per = periodRange(y, m); const u = ustvaCalc(per.from, per.to); const filed = S.ustva.get(per.key);
+  const e = euerCalc(y);
+  const years = []; for (let k = now.getFullYear(); k >= 2025; k--) years.push(k);
+  const months = []; for (let k = 1; k <= curM; k++) { const p = periodRange(y, k); const x = ustvaCalc(p.from, p.to); months.push([k, x.k83, S.ustva.get(p.key)]); }
+  const row = (kz, label, val, ust) => `<tr><td><span class="kz">${kz}</span></td><td>${label}</td><td class="num"><span class="copy" data-act="copy" data-v="${esc(fmtNum(val, Number.isInteger(val) ? 0 : 2))}" title="Kopieren">${fmtNum(val, Number.isInteger(val) ? 0 : 2)}</span></td><td class="num">${ust != null ? eur(ust) : ""}</td></tr>`;
+  const eurRows = EUER_LINES.map(l => { if (l[1] === null) return `<tr><th colspan="4" style="padding-top:16px">${l[0]}</th></tr>`;
+    const [z, kz, label, kind] = l; let val = kind === "sumIn" ? e.sumIn : kind === "sumOut" ? e.sumOut : kind === "profit" ? e.profit : (e.K[kz] || 0);
+    if (!val && !kind) return ""; return `<tr${kind && kind !== "info" ? ' style="font-weight:600"' : ""}><td class="muted">${z}</td><td><span class="kz">${kz}</span></td><td>${label}</td><td class="num"><span class="copy" data-act="copy" data-v="${esc(fmtNum(val))}">${eur(val)}</span></td></tr>`; }).join("");
+  return `<div class="head"><h1>Steuer</h1><select id="taxYear" data-act-change="taxYear" style="width:auto">${years.map(k => `<option ${k === y ? "selected" : ""}>${k}</option>`).join("")}</select></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))">
+  <div class="card"><h2>Umsatzsteuer-Voranmeldung</h2>
+    <div class="tabs" style="margin-top:10px">${months.map(([k, z, f]) => `<button data-act="taxMonth" data-m="${k}" class="${k === m ? "on" : ""}" title="${eur(z)}">${MONTHS[k - 1].slice(0, 3)}${f ? " ✓" : ""}</button>`).join("")}</div>
+    <h3>${per.label} ${filed ? `<span class="chip good">gemeldet am ${fmtDate(filed.filedAt)}</span>` : ""}</h3>
+    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Kz</th><th>Feld in ELSTER</th><th class="num">Eintragen</th><th class="num">Steuer</th></tr></thead><tbody>
+      ${row("81", "Steuerpflichtige Umsätze 19 % (volle Euro)", u.k81, u.ust81)}
+      ${u.k86 ? row("86", "Steuerpflichtige Umsätze 7 % (volle Euro)", u.k86, u.ust86) : ""}
+      ${u.k60 ? row("60", "Umsätze, für die der Leistungsempfänger die Steuer schuldet (§13b)", u.k60) : ""}
+      ${u.k45 ? row("45", "Nicht steuerbare Umsätze (Leistungsort nicht im Inland)", u.k45) : ""}
+      ${row("66", "Vorsteuerbeträge aus Rechnungen anderer Unternehmer", u.k66)}
+      <tr style="font-weight:700"><td><span class="kz">83</span></td><td>${u.k83 < 0 ? "Erstattung (Überschuss)" : "Zahllast"}</td><td class="num"><span class="copy" data-act="copy" data-v="${esc(fmtNum(u.k83))}">${fmtNum(u.k83)}</span></td><td class="num">${eur(u.k83)}</td></tr>
+    </tbody></table></div>
+    <ol class="small" style="padding-left:18px;margin:12px 0">
+      <li>Auf <a href="https://www.elster.de/eportal/start" target="_blank" rel="noopener">Mein ELSTER</a> anmelden → Formulare → Umsatzsteuer → <b>Umsatzsteuer-Voranmeldung ${y}</b>.</li>
+      <li>Zeitraum <b>${per.label}</b> wählen, die Zahlen oben in die Felder mit derselben Kennzahl (Kz) eintragen. Antippen kopiert den Wert.</li>
+      <li>ELSTER rechnet Kz 83 selbst aus – sie muss <b>${fmtNum(u.k83)} €</b> ergeben. Dann absenden.</li></ol>
+    <div class="row">${filed ? `<button class="btn" data-act="unfile" data-k="${per.key}">Markierung „gemeldet“ entfernen</button>` : `<button class="btn pri" data-act="file" data-k="${per.key}" data-v="${u.k83}">Als gemeldet markieren</button>`}</div>
+    <details style="margin-top:12px"><summary class="small">Welche Belege stecken drin? (${u.src.length})</summary><div class="tbl-wrap" style="margin-top:8px"><table><tbody>${u.src.map(s => `<tr><td>${fmtDate(s.date)}</td><td>${esc(unent(s.label))}</td><td class="num">${s.vst != null ? "VSt " + eur(s.vst) : "Zahlung " + eur(s.amount)}</td></tr>`).join("")}</tbody></table></div></details>
+    <p class="small muted">Ist-Versteuerung: Umsätze zählen im Monat des Zahlungseingangs, Vorsteuer nach Belegdatum.</p>
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2>Einnahmenüberschussrechnung ${y}</h2><button class="btn sm" data-act="euerCsv">Als CSV</button></div>
+    <p class="small muted" style="margin:6px 0 10px">${y === now.getFullYear() ? "Vorläufig, Stand heute. " : ""}Zeilen und Kennzahlen wie in der Anlage EÜR (Formular 2025). In ELSTER: Anlage EÜR, Wert bei derselben Kennzahl eintragen.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Zeile</th><th>Kz</th><th>Bezeichnung</th><th class="num">Betrag</th></tr></thead><tbody>${eurRows}</tbody></table></div>
+    ${[...S.assets.values()].length ? `<p class="small muted">AfA ${y} aus dem Anlagenverzeichnis (Seite „Anlagen“). Für die Anlage AVEÜR dort die Werte ablesen.</p>` : ""}
+  </div></div>`;
+}
+
+/* ===================== Mehr ===================== */
+function viewMore() {
+  const bankOpen = [...S.bank.values()].filter(b => !b.link && !b.cat).length;
+  const it = (href, ic, t, sub, act) => `<a href="${href}" ${act ? `data-act="${act}"` : ""}><span class="ic">${ICON[ic]}</span><div><b>${t}</b><span>${sub}</span></div></a>`;
+  return `<div class="head"><h1>Mehr</h1></div><div class="morelist">
+    ${it("#steuer", "tax", "Steuer", "Umsatzsteuer-Voranmeldung und EÜR")}
+    ${it("#bank", "bank", "Bank", bankOpen ? bankOpen + " Umsätze offen" : "N26-Umsätze einlesen")}
+    ${it("#kontakte", "user", "Kontakte", S.contacts.size + " Kunden und Lieferanten")}
+    ${it("#fahrten", "car", "Fahrtenbuch", "Fahrten zu Baustellen, Anfahrt in Rechnung")}
+    ${it("#anlagen", "car2", "Anlagen", "Fahrzeug, Maschinen, Abschreibung")}
+    ${it("#", "shield", "Claude prüfen lassen", "Belege auslesen, Fehler finden", "claudeCheck")}
+    ${it("#", "shield", "Datensicherung", "Alles als ZIP auf dein Gerät", "fullBackup")}
+    ${it("#einstellungen", "gear", "Einstellungen", "Firma, Bank, Rechnungstexte")}
+  </div>`;
+}
+
+/* ===================== Fahrtenbuch ===================== */
+function tripRate() { return Number(S.company?.kmRate || 0.75); }
+function viewTrips() {
+  const list = [...S.trips.values()].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const y = String(new Date().getFullYear()); const kmY = list.filter(t => t.date?.startsWith(y)).reduce((a, t) => a + Number(t.km || 0), 0);
+  const open = list.filter(t => t.billable && !t.billedIn).reduce((a, t) => a + Number(t.km || 0), 0);
+  return `<div class="head"><h1>Fahrtenbuch</h1><button class="btn pri" data-act="newTrip">+ Fahrt</button></div>
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)"><div class="stat"><div class="lbl">Kilometer ${y}</div><div class="val">${fmtNum(kmY, 0)} km</div></div>
+    <div class="stat"><div class="lbl">Noch nicht abgerechnet</div><div class="val">${fmtNum(open, 0)} km</div><div class="sub">= ${eur(open * tripRate())} bei ${fmtNum(tripRate())} €/km</div></div>
+    <div class="stat"><div class="lbl">Fahrten</div><div class="val">${list.length}</div></div></div>
+  <div class="list">${list.map(t => `<a class="li" href="#" data-act="openTrip" data-id="${t.id}">${catIcon("MotorVehicle")}<div><div class="t">${esc(t.to || "Fahrt")}${t.contactId ? " · " + esc(unent(cname(t.contactId))) : ""}</div><div class="s">${fmtDate(t.date)} · ${esc(t.purpose || "")}${t.roundtrip ? " · Hin und zurück" : ""}</div></div><div class="a">${fmtNum(t.km, 0)} km<br>${t.billedIn ? `<span class="chip good">${esc(t.billedIn)}</span>` : t.billable ? '<span class="chip info">abrechenbar</span>' : '<span class="chip">intern</span>'}</div></a>`).join("") || '<div class="empty">Noch keine Fahrten. Tippe auf „+ Fahrt“.</div>'}</div>
+  <p class="small muted">Abrechenbare Fahrten kannst du beim Rechnungschreiben mit „+ Fahrten“ als Anfahrt übernehmen (${fmtNum(tripRate())} € pro km, änderbar in den Einstellungen).</p>`;
+}
+function sheetTrip() {
+  const t = UI.sheet.d;
+  return `<div class="sheet-head"><h2>${UI.sheet.isNew ? "Neue Fahrt" : "Fahrt"}</h2><button class="btn pri" data-act="saveTrip">Speichern</button><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="card"><div class="form">
+    <label class="f"><span>Datum</span><input type="date" id="t-date" data-tf="date" value="${esc(t.date || todayISO())}"></label>
+    <label class="f"><span>Kunde</span><select id="t-contact" data-tf="contactId">${contactOptions(t.contactId, "isCustomer").replace('<option value="__new">+ Neuer Kontakt …</option>', "")}</select></label>
+    <label class="f"><span>Ziel / Baustelle</span><input id="t-to" data-tf="to" value="${esc(t.to || "")}" placeholder="z. B. Hamburg, Weg beim Jäger"></label>
+    <label class="f"><span>Kilometer (gesamt)</span><input id="t-km" data-tf="km" value="${esc(t.km || "")}" inputmode="decimal"></label>
+    <label class="f"><span>Hin und zurück?</span><select id="t-rt" data-tf="roundtrip"><option value="1" ${t.roundtrip !== false ? "selected" : ""}>ja, km sind beide Wege</option><option value="" ${t.roundtrip === false ? "selected" : ""}>nein, einfach</option></select></label>
+    <label class="f"><span>Abrechnen?</span><select id="t-bill" data-tf="billable"><option value="1" ${t.billable !== false ? "selected" : ""}>ja, beim Kunden abrechnen</option><option value="" ${t.billable === false ? "selected" : ""}>nein, interne Fahrt</option></select></label>
+    <label class="f wide"><span>Zweck</span><input id="t-purpose" data-tf="purpose" value="${esc(t.purpose || "")}" placeholder="z. B. Zählerschrank tauschen"></label>
+  </div></div>${!UI.sheet.isNew ? `<div class="row"><button class="btn danger" data-act="deleteTrip">Fahrt löschen</button></div>` : ""}</div>`;
+}
+
+/* ===================== Kontakte ===================== */
+function viewContacts() {
+  const list = [...S.contacts.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return `<div class="head"><h1>Kontakte</h1><button class="btn pri" data-act="newContact">Neuer Kontakt</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Name</th><th>Adresse</th><th>Rolle</th><th class="num">Umsatz gesamt</th></tr></thead><tbody>
+  ${list.map(c => { const sum = [...S.sales.values()].filter(d => d.contactId === c.id && d.kind === "rechnung" && d.status !== "storniert" && d.status !== "entwurf").reduce((a, d) => a + docGross(d), 0);
+    return `<tr class="click" data-act="openContact" data-id="${c.id}"><td>${c.customerNo || c.vendorNo || ""}</td><td><b>${esc(unent(c.name))}</b>${c.archived ? ' <span class="chip">archiviert</span>' : ""}</td><td class="small">${esc([c.street, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", "))}</td><td>${c.isCustomer ? '<span class="chip info">Kunde</span> ' : ""}${c.isVendor ? '<span class="chip">Lieferant</span>' : ""}</td><td class="num">${sum ? eur(sum) : ""}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
+}
+function sheetContact() {
+  const c = UI.sheet.d;
+  const f = (k, l, type = "text") => `<label class="f"><span>${l}</span><input id="c-${k}" data-cf="${k}" type="${type}" value="${esc(unent(c[k] ?? ""))}"></label>`;
+  return `<div class="sheet-head"><h2>${UI.sheet.isNew ? "Neuer Kontakt" : esc(unent(c.name))}</h2><button class="btn pri" data-act="saveContact">Speichern</button><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="card"><div class="form">
+    ${f("name", "Name / Firma")}${f("street", "Straße und Hausnummer")}${f("zip", "PLZ")}${f("city", "Ort")}${f("email", "E-Mail", "email")}${f("phone", "Telefon")}${f("vatId", "USt-IdNr. (bei §13b nötig)")}
+    <label class="f"><span>Rolle</span><select id="c-role" data-cf="role"><option value="k" ${c.isCustomer && !c.isVendor ? "selected" : ""}>Kunde</option><option value="l" ${c.isVendor && !c.isCustomer ? "selected" : ""}>Lieferant</option><option value="kl" ${c.isVendor && c.isCustomer ? "selected" : ""}>beides</option></select></label>
+    <label class="f wide"><span>Notiz</span><textarea id="c-note" data-cf="note">${esc(c.note || "")}</textarea></label>
+  </div></div>${!UI.sheet.isNew ? `<div class="row"><button class="btn" data-act="archiveContact">${c.archived ? "Wiederherstellen" : "Archivieren"}</button></div>` : ""}</div>`;
+}
+async function saveContact() {
+  const c = UI.sheet.d; $$("[data-cf]", $("#sheet")).forEach(el => { c[el.dataset.cf] = el.value; });
+  if (!c.name) { toast("Bitte einen Namen eintragen."); return; }
+  c.isCustomer = c.role !== "l"; c.isVendor = c.role !== "k"; delete c.role;
+  if (c.isCustomer && !c.customerNo) { const n = Number(S.company.nextCustomer || 10001); c.customerNo = n; await saveCompany({ nextCustomer: n + 1 }); }
+  if (c.isVendor && !c.vendorNo) { const n = Number(S.company.nextVendor || 70001); c.vendorNo = n; await saveCompany({ nextVendor: n + 1 }); }
+  c.country = c.country || "DE"; await put("contacts", c.id, c); toast("Kontakt gespeichert.");
+  const back = UI.sheet.back; if (back) { back.d.contactId = c.id; back.d.address = { name: c.name, street: c.street, zip: c.zip, city: c.city, country: c.country, customerNo: c.customerNo }; UI.sheet = back; renderSheet(); } else closeSheet();
+}
+
+/* ===================== Anlagen ===================== */
+function viewAssets() {
+  const y = new Date().getFullYear(); const list = [...S.assets.values()];
+  return `<div class="head"><h1>Anlagen</h1><button class="btn pri" data-act="newAsset">Neue Anlage</button></div>
+  <p class="small muted">Gegenstände über 800 € netto (z. B. Fahrzeug, teure Maschinen) werden über die Nutzungsdauer abgeschrieben. Bis 800 € netto einfach als normalen Beleg erfassen.</p>
+  <div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Angeschafft</th><th class="num">Kosten netto</th><th>Nutzungsdauer</th><th class="num">AfA ${y - 1}</th><th class="num">AfA ${y}</th><th class="num">Restwert 31.12.${y}</th></tr></thead><tbody>
+  ${list.map(a => { let done = 0; for (let k = Number(a.date.slice(0, 4)); k <= y; k++) done += afaFor(a, k); return `<tr class="click" data-act="openAsset" data-id="${a.id}"><td>${esc(a.number || "")}</td><td>${esc(a.name)}</td><td>${fmtDate(a.date)}</td><td class="num">${eur(a.cost)}</td><td>${a.months} Monate</td><td class="num">${eur(afaFor(a, y - 1))}</td><td class="num">${eur(afaFor(a, y))}</td><td class="num">${eur(Math.max(0, a.cost - done))}</td></tr>`; }).join("") || `<tr><td colspan="8" class="empty">Keine Anlagen</td></tr>`}
+  </tbody></table></div>`;
+}
+function sheetAsset() {
+  const a = UI.sheet.d;
+  return `<div class="sheet-head"><h2>${UI.sheet.isNew ? "Neue Anlage" : esc(a.name)}</h2><button class="btn pri" data-act="saveAsset">Speichern</button><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="card"><div class="form">
+    <label class="f wide"><span>Bezeichnung</span><input id="a-name" data-asf="name" value="${esc(a.name || "")}"></label>
+    <label class="f"><span>Inventarnummer</span><input id="a-num" data-asf="number" value="${esc(a.number || "")}"></label>
+    <label class="f"><span>Anschaffungsdatum</span><input type="date" id="a-date" data-asf="date" value="${esc(a.date || todayISO())}"></label>
+    <label class="f"><span>Kosten netto €</span><input id="a-cost" data-asf="cost" value="${esc(fmtNum(a.cost || 0))}" inputmode="decimal"></label>
+    <label class="f"><span>Nutzungsdauer (Monate)</span><input id="a-months" data-asf="months" value="${esc(a.months || 36)}" inputmode="numeric"></label>
+  </div><p class="small muted">Typisch: Pkw/Transporter gebraucht 36–72 Monate, Werkzeugmaschinen 60–120 Monate, Computer 12 Monate.</p></div>
+  ${!UI.sheet.isNew ? `<div class="row"><button class="btn danger" data-act="deleteAsset">Anlage löschen</button></div>` : ""}</div>`;
+}
+
+/* ===================== Einstellungen ===================== */
+function viewSettings() {
+  const c = S.company || {};
+  const f = (k, l, wide) => `<label class="f${wide ? " wide" : ""}"><span>${l}</span><input id="set-${k}" data-set="${k}" value="${esc(c[k] ?? "")}"></label>`;
+  return `<div class="head"><h1>Einstellungen</h1><button class="btn pri" data-act="saveSettings">Speichern</button></div>
+  <div class="grid">
+  <div class="card"><h3>Firma</h3><div class="row" style="margin:10px 0">${c.logoData ? `<img src="${c.logoData}" alt="Logo" style="height:64px">` : ""}<button class="btn sm" data-act="pickLogo">Logo ändern</button></div><div class="form">
+    ${f("name", "Firmenname")}${f("owner", "Inhaber")}${f("street", "Straße")}${f("zip", "PLZ")}${f("city", "Ort")}${f("phone", "Telefon")}${f("email", "E-Mail")}${f("web", "Webseite")}</div></div>
+  <div class="card"><h3>Steuer &amp; Bank</h3><div class="form">${f("taxNo", "Steuernummer")}${f("vatId", "USt-IdNr.")}${f("bankName", "Bank")}${f("iban", "IBAN")}${f("bic", "BIC")}${f("accountHolder", "Kontoinhaber")}</div>
+    <p class="small muted">Besteuerung: Ist-Versteuerung, Gewinnermittlung EÜR, monatliche Voranmeldung, Kontenrahmen SKR 04 (übernommen aus Lexware).</p></div>
+  <div class="card"><h3>Rechnungen</h3><div class="form">${f("invoicePrefix", "Präfix Rechnungen")}${f("nextInvoice", "Nächste Rechnungsnummer")}${f("quotePrefix", "Präfix Angebote")}${f("nextQuote", "Nächste Angebotsnummer")}${f("paymentDays", "Zahlungsziel (Tage)")}${f("kmRate", "Fahrtkosten € pro km")}${f("terms", "Zahlungsbedingungen", 1)}${f("intro", "Einleitung Rechnung", 1)}${f("closing", "Schlusstext Rechnung", 1)}${f("quoteIntro", "Einleitung Angebot", 1)}${f("quoteClosing", "Schlusstext Angebot", 1)}</div></div>
+  <div class="card"><h3>Belege-Archiv (GitHub)</h3><p class="small">Belegbilder werden im privaten Repo <b>${esc(S.gh?.repo || GH_REPO_DEFAULT)}</b> gespeichert. ${S.gh?.token ? `Verbunden seit ${fmtDate((S.gh.savedAt || "").slice(0, 10))}.` : "Noch nicht verbunden."}</p>
+    <div class="row"><input id="gh-token" placeholder="Neuer Token (github_pat_…)" style="max-width:360px" autocomplete="off"><button class="btn" data-act="saveGh">Token erneuern</button></div></div>
+  <div class="card"><h3>Konto</h3><p class="small">Angemeldet als ${esc(session?.user?.email || "")}.</p><button class="btn" data-act="logout">Abmelden</button></div>
+  <div class="card" id="sicherung"><h3>Datensicherung</h3><p class="small">Alle Daten <b>und alle Belegbilder</b> als eine ZIP-Datei auf dein Gerät. Mach das einmal im Monat und leg die Datei zusätzlich auf einen USB-Stick oder in deine Cloud. Rechnungen und Belege musst du 10 Jahre aufheben.${S.company?.lastBackupAt ? ` Letzte Sicherung: ${fmtDate(S.company.lastBackupAt.slice(0, 10))}.` : ""}</p><div class="row"><button class="btn pri" data-act="fullBackup">Alles sichern (ZIP)</button><button class="btn" data-act="backup">Nur Daten (JSON)</button></div></div>
+  </div>`;
+}
+
+/* ===================== PDF: Rechnung / Angebot ===================== */
+const WINANSI = new Set([..."€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ"].map(c => c.charCodeAt(0)));
+const pdfSafe = s => String(s ?? "").replace(/[‐-‒−]/g, "-").replace(/ /g, " ").split("").map(ch => { const k = ch.charCodeAt(0); return (k >= 32 && k <= 126) || (k >= 160 && k <= 255) || WINANSI.has(k) ? ch : (k === 10 ? ch : "?"); }).join("");
+async function blobBytes(id) { const r = await fetch("_blob/" + id); if (!r.ok) throw new Error("Logo nicht gefunden"); return new Uint8Array(await r.arrayBuffer()); }
+function wrap(text, font, size, width) { const out = []; for (const para of pdfSafe(text).split("\n")) { let line = ""; for (const w of para.split(/\s+/)) { const t = line ? line + " " + w : w; if (font.widthOfTextAtSize(t, size) > width && line) { out.push(line); line = w; } else line = t; } out.push(line); } return out; }
+function epcPayload(c, amount, ref) { return ["BCD", "002", "1", "SCT", (c.bic || "").replace(/\s/g, ""), (c.accountHolder || c.owner || c.name || "").slice(0, 70), (c.iban || "").replace(/\s/g, ""), "EUR" + amount.toFixed(2), "", "", ref.slice(0, 140)].join("\n"); }
+async function buildSalePdf(d, opts = {}) {
+  const { PDFDocument, StandardFonts, rgb, AFRelationship, PDFName, PDFString } = PDFLib;
+  const c = d.companySnapshot || S.company || {}; const t = salesTotals(d);
+  const pdf = await PDFDocument.create(); const F = await pdf.embedFont(StandardFonts.Helvetica); const B = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const W = 595.28, H = 841.89, L = 62, R = W - 52; const ink = rgb(0.1, 0.12, 0.16), grey = rgb(0.4, 0.43, 0.48), line = rgb(0.75, 0.77, 0.8);
+  let page = pdf.addPage([W, H]); let y;
+  const txt = (s, x, yy, o = {}) => { const f = o.bold ? B : F, sz = o.size || 9.5; s = pdfSafe(s); let xx = x; if (o.align === "right") xx = x - f.widthOfTextAtSize(s, sz); page.drawText(s, { x: xx, y: yy, size: sz, font: f, color: o.color || ink }); };
+  let logo = null; const _ld = c.logoData || S.company?.logoData; if (_ld) { try { const by = Uint8Array.from(atob(_ld.split(",")[1]), ch => ch.charCodeAt(0)); logo = by[0] === 0x89 ? await pdf.embedPng(by) : await pdf.embedJpg(by); } catch (e) { } }
+  const footer = () => {
+    const fy = 62; page.drawLine({ start: { x: L, y: fy + 30 }, end: { x: R, y: fy + 30 }, thickness: 0.5, color: line });
+    const col = (lines, x) => lines.forEach((s, i) => txt(s, x, fy + 18 - i * 9, { size: 7, color: grey }));
+    col([c.name, c.street, `${c.zip || ""} ${c.city || ""}`, c.phone ? "Tel.: " + c.phone : "", c.email || ""].filter(Boolean), L);
+    col([c.vatId ? "USt-IdNr.: " + c.vatId : "", c.taxNo ? "Steuernummer: " + c.taxNo : "", c.web || ""].filter(Boolean), L + 165);
+    col([c.owner || "", c.bankName || "", c.iban ? "IBAN: " + c.iban : "", c.bic ? "BIC: " + c.bic : ""].filter(Boolean), L + 320);
+  };
+  const header = first => {
+    if (logo) { const s = 64 / logo.height; page.drawImage(logo, { x: R - logo.width * s, y: H - 50 - 64, width: logo.width * s, height: 64 }); }
+    if (!first) { y = H - 130; return; }
+    const sender = [c.name, c.street, `${c.zip || ""} ${c.city || ""}`].filter(Boolean).join(", "); txt(sender, L, H - 150, { size: 6.5, color: grey });
+    page.drawLine({ start: { x: L, y: H - 153 }, end: { x: L + 230, y: H - 153 }, thickness: 0.4, color: line });
+    const a = d.address || {}; [unent(a.name), a.street, `${a.zip || ""} ${a.city || ""}`, a.country && a.country !== "DE" ? a.country : ""].filter(Boolean).forEach((s, i) => txt(s, L, H - 168 - i * 12.5, { size: 10 }));
+    [c.name, c.street, `${c.zip || ""} ${c.city || ""}`, c.phone ? "Tel.: " + c.phone : "", c.email].filter(Boolean).forEach((s, i) => txt(s, R, H - 130 - i * 11, { size: 8.5, align: "right" }));
+    y = H - 275;
+  };
+  header(true); footer();
+  const title = opts.reminder ? "Zahlungserinnerung" : d.kind === "angebot" ? "Angebot" : d.kind === "storno" ? "Rechnungskorrektur (Storno)" : "Rechnung";
+  txt(title, L, y, { size: 16, bold: true }); y -= 22;
+  if (opts.reminder) {
+    for (const ln of wrap(`Sicher haben Sie es im Alltag übersehen: Unsere Rechnung ${d.number} vom ${fmtDate(d.date)} über ${eur(t.gross)} war am ${fmtDate(d.dueDate)} fällig. Bis heute konnten wir noch keinen Zahlungseingang feststellen.\n\nWir bitten Sie, den offenen Betrag von ${eur(openAmount(d))} bis zum ${fmtDate(addDays(todayISO(), 7))} auf das unten genannte Konto zu überweisen. Sollte sich Ihre Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie es bitte als gegenstandslos.\n\nMit freundlichen Grüßen\n${c.owner || c.name}`, F, 10, R - L)) { txt(ln, L, y, { size: 10 }); y -= 14; }
+  } else {
+    for (const ln of wrap(d.intro || "", F, 9.5, R - L)) { txt(ln, L, y); y -= 12; } y -= 10;
+    const meta = [[d.kind === "angebot" ? "Angebotsnr.:" : "Rechnungsnr.:", d.number || "ENTWURF"], ["Kundennr.:", String(d.address?.customerNo || "")], ["Datum:", fmtDate(d.date)]];
+    if (d.kind === "angebot") meta.push(["Gültig bis:", fmtDate(d.dueDate)]); else meta.push([d.serviceDateTo ? "Leistungszeitraum:" : "Leistungsdatum:", d.serviceDateTo ? fmtDate(d.serviceDate) + " - " + fmtDate(d.serviceDateTo) : fmtDate(d.serviceDate)]);
+    if (d.refNumber) meta.push(["Bezug:", "Rechnung " + d.refNumber]);
+    const mw = (R - L) / meta.length; meta.forEach(([k, v], i) => { txt(k, L + i * mw, y, { bold: true, size: 8.5 }); txt(v, L + i * mw, y - 12, { size: 9 }); });
+    page.drawLine({ start: { x: L, y: y + 11 }, end: { x: R, y: y + 11 }, thickness: 0.5, color: line }); page.drawLine({ start: { x: L, y: y - 18 }, end: { x: R, y: y - 18 }, thickness: 0.5, color: line }); y -= 40;
+    const X = { pos: L, desc: L + 26, qty: L + 290, unit: L + 296, price: L + 395, vat: L + 432, sum: R };
+    const thead = () => { txt("Pos.", X.pos, y, { bold: true, size: 8.5 }); txt("Bezeichnung", X.desc, y, { bold: true, size: 8.5 }); txt("Menge", X.qty, y, { bold: true, size: 8.5, align: "right" }); txt("Einheit", X.unit, y, { bold: true, size: 8.5 }); txt("Einzel €", X.price, y, { bold: true, size: 8.5, align: "right" }); txt("USt. %", X.vat, y, { bold: true, size: 8.5, align: "right" }); txt("Gesamt €", X.sum, y, { bold: true, size: 8.5, align: "right" }); page.drawLine({ start: { x: L, y: y - 5 }, end: { x: R, y: y - 5 }, thickness: 0.5, color: line }); y -= 18; };
+    thead();
+    d.items.forEach((it, i) => {
+      const lines = wrap(it.desc, F, 9, X.qty - X.desc - 40).concat(it.longDesc ? wrap(it.longDesc, F, 8, X.qty - X.desc - 40) : []);
+      if (y - lines.length * 11 < 150) { page = pdf.addPage([W, H]); header(false); footer(); thead(); }
+      txt(String(i + 1), X.pos + 4, y, { size: 9 }); lines.forEach((s, k) => txt(s, X.desc, y - k * 11, { size: k && it.longDesc && k >= wrap(it.desc, F, 9, X.qty - X.desc - 40).length ? 8 : 9, color: k >= wrap(it.desc, F, 9, X.qty - X.desc - 40).length ? grey : ink }));
+      txt(fmtQty(it.qty), X.qty, y, { size: 9, align: "right" }); txt(it.unit || "", X.unit, y, { size: 9 }); txt(fmtNum(it.price), X.price, y, { size: 9, align: "right" }); txt(fmtNum(d.taxMode === "rc13b" ? 0 : it.vat), X.vat, y, { size: 9, align: "right" }); txt(fmtNum(itemNet(it)), X.sum, y, { size: 9, align: "right" });
+      y -= Math.max(1, lines.length) * 11 + 7;
+    });
+    if (y < 210) { page = pdf.addPage([W, H]); header(false); footer(); }
+    page.drawLine({ start: { x: L, y: y + 4 }, end: { x: R, y: y + 4 }, thickness: 0.5, color: line }); y -= 10;
+    const tot = [["Zwischensumme (netto)", fmtNum(t.net)]]; if (d.taxMode === "rc13b") tot.push(["Umsatzsteuer 0 %", "-"]); else for (const v of Object.keys(t.by).sort((a, b) => b - a)) tot.push([`Umsatzsteuer ${v} %`, fmtNum(r2(t.by[v] * v / 100))]);
+    tot.forEach(([k, v]) => { txt(k, L + 4, y); txt(v, R, y, { align: "right" }); y -= 13; });
+    page.drawLine({ start: { x: L, y: y + 8 }, end: { x: R, y: y + 8 }, thickness: 0.5, color: line }); txt("Gesamtbetrag", L + 4, y - 4, { bold: true, size: 10.5 }); txt(fmtNum(t.gross), R, y - 4, { bold: true, size: 10.5, align: "right" }); y -= 30;
+    const tail = []; if (d.kind !== "angebot" && d.terms) tail.push(d.terms); if (d.taxMode === "rc13b") tail.push("Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge, §13b UStG)."); if (d.closing) tail.push(d.closing);
+    for (const ln of wrap(tail.join("\n"), F, 9.5, R - L)) { if (y < 130) { page = pdf.addPage([W, H]); header(false); footer(); } txt(ln, L, y); y -= 12.5; }
+    if (d.kind === "rechnung" && c.iban && t.gross > 0 && typeof qrcode !== "undefined" && y > 175) {
+      try { const qr = qrcode(0, "M"); qr.addData(String.fromCharCode(...new TextEncoder().encode(epcPayload(c, t.gross, d.number || "")))); qr.make(); const n = qr.getModuleCount(), sz = 70 / n, qx = L + 150, qy = y - 82;
+        page.drawRectangle({ x: L, y: qy - 6, width: 230, height: 82, borderColor: line, borderWidth: 0.5 }); txt("Überweisen per Code", L + 8, qy + 56, { bold: true, size: 8.5 }); txt("Ganz bequem Code mit der", L + 8, qy + 44, { size: 8 }); txt("Banking-App scannen.", L + 8, qy + 34, { size: 8 });
+        for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) page.drawRectangle({ x: qx + k * sz, y: qy + 70 - (r + 1) * sz, width: sz, height: sz, color: rgb(0, 0, 0) }); } catch (e) { console.warn("QR", e); }
+    }
+  }
+  if (!d.number) { for (const p of pdf.getPages()) p.drawText("ENTWURF", { x: 150, y: 400, size: 80, font: B, color: rgb(0.85, 0.85, 0.85), opacity: 0.5 }); }
+  const pages = pdf.getPages(); if (pages.length > 1) pages.forEach((p, i) => p.drawText(pdfSafe(`Seite ${i + 1}/${pages.length}`), { x: W / 2 - 18, y: 30, size: 7, font: F, color: grey }));
+  pdf.setTitle(`${title} ${d.number || ""}`); pdf.setAuthor(c.name || ""); pdf.setCreator("Labertal Buchhaltung"); pdf.setProducer("Labertal Buchhaltung");
+  if (!opts.reminder && d.kind !== "angebot" && d.number) {
+    const xml = new TextEncoder().encode(ciiXml(d));
+    await pdf.attach(xml, "factur-x.xml", { mimeType: "text/xml", description: "Factur-X/ZUGFeRD EN16931", creationDate: new Date(), modificationDate: new Date(), afRelationship: AFRelationship ? AFRelationship.Alternative : undefined });
+    const xmp = `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"><pdfaid:part>3</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance></rdf:Description><rdf:Description rdf:about="" xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"><fx:DocumentType>INVOICE</fx:DocumentType><fx:DocumentFileName>factur-x.xml</fx:DocumentFileName><fx:Version>1.0</fx:Version><fx:ConformanceLevel>EN 16931</fx:ConformanceLevel></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
+    const ms = pdf.context.stream(new TextEncoder().encode(xmp), { Type: "Metadata", Subtype: "XML" }); pdf.catalog.set(PDFName.of("Metadata"), pdf.context.register(ms));
+  }
+  return await pdf.save();
+}
+const xe = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const d8 = s => (s || "").replace(/-/g, "");
+const UNIT_CODE = { "Stunde": "HUR", "Stück": "H87", "pauschal": "LS", "Meter": "MTR", "Kilometer": "KMT", "Tag": "DAY", "Set": "SET", "m²": "MTK", "kg": "KGM", "Liter": "LTR" };
+function ciiXml(d) {
+  const c = d.companySnapshot || S.company || {}; const t = salesTotals(d); const a = d.address || {}; const rc = d.taxMode === "rc13b";
+  const cat = v => rc ? "AE" : Number(v) === 0 ? "Z" : "S"; const f2 = n => Number(n).toFixed(2);
+  const lines = d.items.map((it, i) => `<ram:IncludedSupplyChainTradeLineItem><ram:AssociatedDocumentLineDocument><ram:LineID>${i + 1}</ram:LineID></ram:AssociatedDocumentLineDocument><ram:SpecifiedTradeProduct><ram:Name>${xe(it.desc)}</ram:Name></ram:SpecifiedTradeProduct><ram:SpecifiedLineTradeAgreement><ram:NetPriceProductTradePrice><ram:ChargeAmount>${f2(it.price)}</ram:ChargeAmount></ram:NetPriceProductTradePrice></ram:SpecifiedLineTradeAgreement><ram:SpecifiedLineTradeDelivery><ram:BilledQuantity unitCode="${UNIT_CODE[it.unit] || "C62"}">${Number(it.qty).toFixed(4)}</ram:BilledQuantity></ram:SpecifiedLineTradeDelivery><ram:SpecifiedLineTradeSettlement><ram:ApplicableTradeTax><ram:TypeCode>VAT</ram:TypeCode><ram:CategoryCode>${cat(it.vat)}</ram:CategoryCode><ram:RateApplicablePercent>${rc ? "0.00" : f2(it.vat)}</ram:RateApplicablePercent></ram:ApplicableTradeTax><ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${f2(itemNet(it))}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation></ram:SpecifiedLineTradeSettlement></ram:IncludedSupplyChainTradeLineItem>`).join("");
+  const taxes = Object.entries(t.by).map(([v, n]) => `<ram:ApplicableTradeTax><ram:CalculatedAmount>${f2(rc ? 0 : r2(n * v / 100))}</ram:CalculatedAmount><ram:TypeCode>VAT</ram:TypeCode>${rc ? "<ram:ExemptionReason>Steuerschuldnerschaft des Leistungsempfängers</ram:ExemptionReason>" : ""}<ram:BasisAmount>${f2(n)}</ram:BasisAmount><ram:CategoryCode>${cat(v)}</ram:CategoryCode>${rc ? "<ram:ExemptionReasonCode>VATEX-EU-AE</ram:ExemptionReasonCode>" : ""}<ram:RateApplicablePercent>${rc ? "0.00" : f2(v)}</ram:RateApplicablePercent></ram:ApplicableTradeTax>`).join("");
+  const type = d.kind === "storno" ? "384" : "380";
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100" xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"><rsm:ExchangedDocumentContext><ram:GuidelineSpecifiedDocumentContextParameter><ram:ID>urn:cen.eu:en16931:2017</ram:ID></ram:GuidelineSpecifiedDocumentContextParameter></rsm:ExchangedDocumentContext><rsm:ExchangedDocument><ram:ID>${xe(d.number)}</ram:ID><ram:TypeCode>${type}</ram:TypeCode><ram:IssueDateTime><udt:DateTimeString format="102">${d8(d.date)}</udt:DateTimeString></ram:IssueDateTime>${d.intro ? `<ram:IncludedNote><ram:Content>${xe(d.intro)}</ram:Content><ram:SubjectCode>AAI</ram:SubjectCode></ram:IncludedNote>` : ""}${rc ? `<ram:IncludedNote><ram:Content>Steuerschuldnerschaft des Leistungsempfängers (§13b UStG)</ram:Content></ram:IncludedNote>` : ""}</rsm:ExchangedDocument><rsm:SupplyChainTradeTransaction>${lines}<ram:ApplicableHeaderTradeAgreement>${a.buyerReference ? `<ram:BuyerReference>${xe(a.buyerReference)}</ram:BuyerReference>` : ""}<ram:SellerTradeParty><ram:Name>${xe(c.name)}</ram:Name><ram:DefinedTradeContact><ram:PersonName>${xe(c.owner)}</ram:PersonName>${c.phone ? `<ram:TelephoneUniversalCommunication><ram:CompleteNumber>${xe(c.phone)}</ram:CompleteNumber></ram:TelephoneUniversalCommunication>` : ""}${c.email ? `<ram:EmailURIUniversalCommunication><ram:URIID>${xe(c.email)}</ram:URIID></ram:EmailURIUniversalCommunication>` : ""}</ram:DefinedTradeContact><ram:PostalTradeAddress><ram:PostcodeCode>${xe(c.zip)}</ram:PostcodeCode><ram:LineOne>${xe(c.street)}</ram:LineOne><ram:CityName>${xe(c.city)}</ram:CityName><ram:CountryID>DE</ram:CountryID></ram:PostalTradeAddress>${c.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${xe(c.email)}</ram:URIID></ram:URIUniversalCommunication>` : ""}${c.taxNo ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${xe(c.taxNo)}</ram:ID></ram:SpecifiedTaxRegistration>` : ""}${c.vatId ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${xe(c.vatId)}</ram:ID></ram:SpecifiedTaxRegistration>` : ""}</ram:SellerTradeParty><ram:BuyerTradeParty><ram:Name>${xe(unent(a.name))}</ram:Name><ram:PostalTradeAddress><ram:PostcodeCode>${xe(a.zip)}</ram:PostcodeCode><ram:LineOne>${xe(a.street)}</ram:LineOne><ram:CityName>${xe(a.city)}</ram:CityName><ram:CountryID>${xe(a.country || "DE")}</ram:CountryID></ram:PostalTradeAddress>${a.vatId ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${xe(a.vatId)}</ram:ID></ram:SpecifiedTaxRegistration>` : ""}</ram:BuyerTradeParty></ram:ApplicableHeaderTradeAgreement><ram:ApplicableHeaderTradeDelivery>${d.serviceDate ? `<ram:ActualDeliverySupplyChainEvent><ram:OccurrenceDateTime><udt:DateTimeString format="102">${d8(d.serviceDate)}</udt:DateTimeString></ram:OccurrenceDateTime></ram:ActualDeliverySupplyChainEvent>` : ""}</ram:ApplicableHeaderTradeDelivery><ram:ApplicableHeaderTradeSettlement><ram:PaymentReference>${xe(d.number)}</ram:PaymentReference><ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>${c.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>58</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${xe(c.iban.replace(/\s/g, ""))}</ram:IBANID><ram:AccountName>${xe(c.accountHolder || c.owner)}</ram:AccountName></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>` : ""}${taxes}${d.serviceDate ? `<ram:BillingSpecifiedPeriod><ram:StartDateTime><udt:DateTimeString format="102">${d8(d.serviceDate)}</udt:DateTimeString></ram:StartDateTime>${d.serviceDateTo ? `<ram:EndDateTime><udt:DateTimeString format="102">${d8(d.serviceDateTo)}</udt:DateTimeString></ram:EndDateTime>` : ""}</ram:BillingSpecifiedPeriod>` : ""}<ram:SpecifiedTradePaymentTerms>${d.terms ? `<ram:Description>${xe(d.terms)}</ram:Description>` : ""}<ram:DueDateDateTime><udt:DateTimeString format="102">${d8(d.dueDate || d.date)}</udt:DateTimeString></ram:DueDateDateTime></ram:SpecifiedTradePaymentTerms><ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount>${f2(t.net)}</ram:LineTotalAmount><ram:ChargeTotalAmount>0.00</ram:ChargeTotalAmount><ram:AllowanceTotalAmount>0.00</ram:AllowanceTotalAmount><ram:TaxBasisTotalAmount>${f2(t.net)}</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="EUR">${f2(t.tax)}</ram:TaxTotalAmount><ram:GrandTotalAmount>${f2(t.gross)}</ram:GrandTotalAmount><ram:TotalPrepaidAmount>0.00</ram:TotalPrepaidAmount><ram:DuePayableAmount>${f2(t.gross)}</ram:DuePayableAmount></ram:SpecifiedTradeSettlementHeaderMonetarySummation></ram:ApplicableHeaderTradeSettlement></rsm:SupplyChainTradeTransaction></rsm:CrossIndustryInvoice>`;
+}
+function crc32(buf) { let c, crc = 0xFFFFFFFF; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xFF; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) { // [[name, Uint8Array]] -> Uint8Array (ohne Kompression)
+  const enc = new TextEncoder(); const parts = [], central = []; let off = 0;
+  for (const [name, data] of files) { const nm = enc.encode(name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm); off += 30 + nm.length + data.length; }
+  const cs = central.reduce((a, b) => a + b.length, 0); const e = new DataView(new ArrayBuffer(22)); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  const all = [...parts, ...central, new Uint8Array(e.buffer)]; const out = new Uint8Array(all.reduce((a, b) => a + b.length, 0)); let p = 0; for (const x of all) { out.set(x, p); p += x.length; } return out;
+}
+async function saveFile(filename, data, mime) {
+  if (!downloads) { toast("Herunterladen ist in dieser Ansicht nicht verfügbar."); return; }
+  try { await downloads.save({ filename, data: data instanceof Blob ? data : new Blob([data], { type: mime }) }); }
+  catch (e) { if (e?.code !== "declined" && e?.code !== "cancelled") toast("Herunterladen abgebrochen."); }
+}
+async function downloadSalePdf(d, opts = {}) {
+  if (d.source === "lexware" && d.files?.length && !opts.reminder && !opts.fresh) { const f = d.files[d.files.length - 1]; const r = await fetch("_blob/" + f.id); if (r.ok) { await saveFile(f.name || `${d.number}.pdf`, await r.blob(), "application/pdf"); return; } }
+  toast("PDF wird erstellt …"); const bytes = await buildSalePdf(d, opts);
+  const name = (opts.reminder ? "Zahlungserinnerung_" : "") + (d.number || "Entwurf") + "_" + salesName(d).replace(/[^\wäöüÄÖÜß-]+/g, "_").slice(0, 40) + ".pdf";
+  await saveFile(name, bytes, "application/pdf");
+}
+
+/* ===================== Datensicherung & CSV ===================== */
+async function backup() {
+  const data = { exportedAt: new Date().toISOString(), company: S.company }; for (const c of COLS) data[c] = [...S[c].values()];
+  await saveFile(`Buchhaltung_Sicherung_${todayISO()}.json`, JSON.stringify(data, null, 1), "application/json");
+}
+async function fullBackup() {
+  toast("Sicherung wird erstellt … das kann eine Minute dauern.", 60000);
+  const data = { exportedAt: new Date().toISOString(), company: S.company }; for (const c of COLS) data[c] = [...S[c].values()];
+  const files = [["Buchhaltung_Daten.json", new TextEncoder().encode(JSON.stringify(data, null, 1))]];
+  const seen = new Set(); const safe = t => String(t || "").replace(/[^\wäöüÄÖÜß.-]+/g, "_").slice(0, 60);
+  const add = async (folder, base, f) => { if (!f?.id || seen.has(f.id)) return; seen.add(f.id); try { const r = await fetch("_blob/" + f.id); if (!r.ok) return; const ext = (f.name || "").match(/\.\w+$/)?.[0] || (/pdf/.test(f.type) ? ".pdf" : ".jpg"); files.push([`${folder}/${safe(base)}_${f.id.slice(0, 6)}${ext}`, new Uint8Array(await r.arrayBuffer())]); } catch (e) { } };
+  for (const v of S.vouchers.values()) for (const f of v.files || []) await add("Belege/" + (v.date || "").slice(0, 4), `${v.date}_${vendorName(v)}_${v.number || ""}`, f);
+  for (const d of S.sales.values()) for (const f of d.files || []) await add("Rechnungen", `${d.date}_${d.number}_${salesName(d)}`, f);
+  await saveFile(`Buchhaltung_Sicherung_${todayISO()}.zip`, zipStore(files), "application/zip");
+  await saveCompany({ lastBackupAt: new Date().toISOString() }); toast(`Sicherung fertig: ${files.length - 1} Belegbilder und alle Daten.`, 5000);
+}
+async function euerCsv() {
+  const y = UI.taxYear; const e = euerCalc(y); const rows = [["Zeile", "Kennzahl", "Bezeichnung", "Betrag"]];
+  for (const l of EUER_LINES) { if (l[1] === null) continue; const [z, kz, label, kind] = l; const v = kind === "sumIn" ? e.sumIn : kind === "sumOut" ? e.sumOut : kind === "profit" ? e.profit : (e.K[kz] || 0); if (v || kind) rows.push([z, kz, label, fmtNum(v)]); }
+  await saveFile(`EUER_${y}.csv`, "﻿" + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(";")).join("\r\n"), "text/csv");
+}
+
+/* ===================== Sheet ===================== */
+function renderSheet() {
+  const s = UI.sheet; const el = $("#sheet");
+  if (!s) { el.classList.remove("open"); $("#sheetBg").classList.remove("open"); el.innerHTML = ""; return; }
+  el.innerHTML = s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
+  el.classList.add("open"); $("#sheetBg").classList.add("open");
+}
+function closeSheet() { UI.sheet = null; renderSheet(); }
+function sheetPay() {
+  const p = UI.sheet; const d = S.sales.get(p.id);
+  return `<div class="sheet-head"><h2>Zahlung erfassen: ${esc(d.number)}</h2><button class="btn" data-act="closeSheet">Abbrechen</button></div>
+  <div class="sheet-body"><div class="card"><div class="form">
+    <label class="f"><span>Zahlungsdatum</span><input type="date" id="p-date" value="${todayISO()}"></label>
+    <label class="f"><span>Betrag €</span><input id="p-amount" value="${esc(fmtNum(openAmount(d)))}" inputmode="decimal"></label>
+    <label class="f"><span>Art</span><select id="p-note"><option>Überweisung</option><option>Bar</option><option>Verrechnung</option></select></label></div>
+    <div class="row" style="margin-top:12px"><button class="btn pri" data-act="payConfirm">Zahlung speichern</button></div>
+    <p class="small muted">Tipp: Wenn du die N26-CSV einliest, wird die Zahlung automatisch zugeordnet.</p></div></div>`;
+}
+
+/* ===================== Ereignisse ===================== */
+document.addEventListener("click", async e => {
+  const el = e.target.closest("[data-act]"); if (!el) return; const act = el.dataset.act; const id = el.dataset.id;
+  if (el.tagName === "A" && el.getAttribute("href") === "#") e.preventDefault();
+  try {
+    switch (act) {
+      case "stab": UI.salesTab = el.dataset.tab; render(); break;
+      case "vtab": UI.vTab = el.dataset.tab; if (route() !== "belege") location.hash = "belege"; else render(); break;
+      case "btab": UI.bankTab = el.dataset.tab; render(); break;
+      case "newSale": newSale(el.dataset.kind); break;
+      case "openSale": e.preventDefault(); openSaleEditor(S.sales.get(id), false); break;
+      case "closeSheet": closeSheet(); break;
+      case "addItem": { readSaleForm(); const p = el.dataset.preset; UI.sheet.d.items.push(p === "anfahrt" ? { desc: "Anfahrtspauschale (Hin- und Rückweg)", qty: 1, unit: "Kilometer", price: 0.75, vat: 19 } : p === "arbeit" ? { desc: "Arbeitszeit", qty: 1, unit: "Stunde", price: 62, vat: 19 } : { desc: "", qty: 1, unit: "Stück", price: 0, vat: 19 }); renderSheet(); break; }
+      case "rmItem": readSaleForm(); UI.sheet.d.items.splice(Number(el.dataset.i), 1); renderSheet(); break;
+      case "saveSale": await saveSale(false); break;
+      case "finalizeSale": { const d = readSaleForm(); const err = validateSale(d); if (err) { toast(err); break; } UI.sheet.confirm = true; if (!confirmInline(el, d.kind === "angebot" ? "Angebot abschließen und Nummer vergeben?" : "Festschreiben? Danach ist keine Änderung mehr möglich.")) break; await saveSale(true); break; }
+      case "pdfSale": { const d = UI.sheet.d.status === "entwurf" ? readSaleForm() : UI.sheet.d; await downloadSalePdf(d, { fresh: e.shiftKey }); break; }
+      case "xmlSale": { const d = UI.sheet.d; await saveFile(`${d.number}_E-Rechnung.zip`, zipStore([[`${d.number}_factur-x.xml`, new TextEncoder().encode(ciiXml(d))]]), "application/zip"); toast("Die XML-Datei liegt in der ZIP-Datei."); break; }
+      case "paySale": UI.sheet = { type: "pay", id: UI.sheet.d.id, back: UI.sheet }; renderSheet(); break;
+      case "payConfirm": { const d = S.sales.get(UI.sheet.id); const date = $("#p-date").value, amount = parseNum($("#p-amount").value); if (!date || !amount) { toast("Datum und Betrag eintragen."); break; }
+        const pays = [...(d.payments || []), { date, amount, note: $("#p-note").value }]; const paid = r2(pays.reduce((a, p) => a + p.amount, 0)); const full = paid >= docGross(d) - 0.01;
+        await patch("sales", d.id, { payments: pays, status: full ? "bezahlt" : "offen", paidDate: full ? date : "" }); toast(full ? "Rechnung ist bezahlt." : "Teilzahlung gespeichert."); openSaleEditor(S.sales.get(d.id), false); break; }
+      case "unpaySale": { const d = UI.sheet.d; if (!confirmInline(el, "Zahlung wirklich zurücknehmen?")) break; for (const b of S.bank.values()) if (b.link?.id === d.id) await unlinkBank(b); await patch("sales", d.id, { payments: [], status: "offen", paidDate: "" }); openSaleEditor(S.sales.get(d.id), false); break; }
+      case "reminderSale": await downloadSalePdf(UI.sheet.d, { reminder: true }); break;
+      case "cancelSale": { const d = UI.sheet.d; if (!confirmInline(el, `${d.number} stornieren? Es wird eine Rechnungskorrektur mit negativen Beträgen erstellt.`)) break;
+        const st = { ...JSON.parse(JSON.stringify(d)), id: uid(), kind: "storno", status: "entwurf", number: "", refId: d.id, refNumber: d.number, date: todayISO(), items: d.items.map(i => ({ ...i, qty: -Number(i.qty) })), payments: [], intro: `Hiermit stornieren wir die Rechnung ${d.number} vom ${fmtDate(d.date)}.`, terms: "", files: [], source: "app" };
+        delete st.finalizedAt; delete st.cancelledBy; UI.sheet = { type: "sale", d: st, isNew: true }; await saveSale(true, true); await patch("sales", d.id, { status: "storniert", cancelledBy: st.id }); toast(`${d.number} storniert.`); break; }
+      case "quoteToInvoice": { const q = UI.sheet.d; await patch("sales", q.id, { status: "angenommen" }); newSale("rechnung", { contactId: q.contactId, address: q.address, items: JSON.parse(JSON.stringify(q.items)), fromQuote: q.number }); break; }
+      case "quoteStatus": await patch("sales", UI.sheet.d.id, { status: el.dataset.s }); openSaleEditor(S.sales.get(UI.sheet.d.id), false); break;
+      case "copySale": { const d = UI.sheet.d; newSale(d.kind === "storno" ? "rechnung" : d.kind, { contactId: d.contactId, address: d.address, items: JSON.parse(JSON.stringify(d.items)), intro: d.intro, closing: d.closing, terms: d.terms, taxMode: d.taxMode }); break; }
+      case "deleteDraft": if (!confirmInline(el, "Entwurf löschen?")) break; await del("sales", UI.sheet.d.id); closeSheet(); break;
+      case "newVoucher": $("#filePick").click(); break;
+      case "snap": e.preventDefault(); $("#camPick").click(); break;
+      case "capEdit": UI.sheet.expand = true; renderSheet(); renderFilePreview(UI.sheet.d.files?.[0]); break;
+      case "capCat": { const c = el.dataset.cat; UI.sheet.d.items = UI.sheet.d.items.map((i, k) => k === 0 ? { ...i, cat: c, ...(c === "PrivateWithdrawal" ? { vat: 0 } : {}) } : i); delete UI.sheet.d.items[0].net; delete UI.sheet.d.items[0].tax; renderSheet(); renderFilePreview(UI.sheet.d.files?.[0]); break; }
+      case "capRetry": { const st = UI.sheet; st.ai = "busy"; renderSheet(); renderFilePreview(st.d.files?.[0]); try { const res = await extractVoucher(st.file); if (UI.sheet !== st) break; Object.assign(st.d, res.fields); st.ai = "done"; st.aiConf = res.conf; st.einv = res.einv; } catch (x) { st.ai = "err"; st.aiErr = x?.message || String(x); } renderSheet(); renderFilePreview(st.d.files?.[0]); break; }
+      case "fullBackup": e.preventDefault(); await fullBackup(); break;
+      case "gobackup": break;
+      case "pickFiles": $("#filePick").click(); break;
+      case "manualVoucher": openVoucherEditor(blankVoucher(), true); break;
+      case "openVoucher": e.preventDefault(); openVoucherEditor(S.vouchers.get(id), false); break;
+      case "addVItem": readVoucherForm(); UI.sheet.d.items.push({ cat: UI.sheet.d.items[0]?.cat || "MaterialsGoods", vat: 7, gross: 0 }); renderSheet(); renderFilePreview(UI.sheet.d.files?.[0]); break;
+      case "rmVItem": readVoucherForm(); UI.sheet.d.items.splice(Number(el.dataset.i), 1); renderSheet(); renderFilePreview(UI.sheet.d.files?.[0]); break;
+      case "saveVoucher": await saveVoucher(); break;
+      case "deleteVoucher": { const v = UI.sheet.d; if (!confirmInline(el, v.status === "pruefen" ? "Diesen (doppelten) Beleg löschen?" : "Beleg wirklich löschen? Belege müssen 10 Jahre aufbewahrt werden – nur Fehler/Doppelte löschen.")) break; await del("vouchers", v.id); closeSheet(); toast("Beleg gelöscht."); break; }
+      case "attachFile": UI.attach = true; $("#filePick").click(); break;
+      case "showFile": renderFilePreview(UI.sheet.d.files[Number(el.dataset.i)]); break;
+      case "importCsv": $("#csvPick").click(); break;
+      case "acceptSugg": { const b = S.bank.get(id); const s = suggestFor(b); if (s) await linkBank(b, s); break; }
+      case "acceptAll": { let n = 0; for (const b of [...S.bank.values()]) { if (b.link || b.cat) continue; const s = suggestFor(b); if (s) { await linkBank(b, s); n++; } } toast(`${n} Umsätze zugeordnet.`); break; }
+      case "assignBank": assignBankSheet(S.bank.get(id)); break;
+      case "linkTo": { const b = S.bank.get(UI.sheet.d.id); await linkBank(b, { col: el.dataset.col, id }); closeSheet(); break; }
+      case "linkAny": { const v = $("#bk-any").value; if (!v) break; const [col, tid] = v.split(":"); await linkBank(S.bank.get(UI.sheet.d.id), { col, id: tid }); closeSheet(); break; }
+      case "bankCat": await patch("bank", UI.sheet.d.id, { cat: $("#bk-cat").value, vat: Number($("#bk-vat").value) }); closeSheet(); break;
+      case "bankUncat": { const b = { ...S.bank.get(UI.sheet.d.id) }; delete b.cat; b.vat = 0; await put("bank", b.id, b); closeSheet(); break; }
+      case "unlinkBank": await unlinkBank(S.bank.get(id)); break;
+      case "openLink": { const b = S.bank.get(id); if (b.link.col === "sales") openSaleEditor(S.sales.get(b.link.id), false); else openVoucherEditor(S.vouchers.get(b.link.id), false); break; }
+      case "taxMonth": UI.taxMonth = Number(el.dataset.m); render(); break;
+      case "file": await put("ustva", el.dataset.k, { filedAt: todayISO(), k83: Number(el.dataset.v) }); toast("Als gemeldet markiert."); break;
+      case "unfile": await del("ustva", el.dataset.k); break;
+      case "copy": try { await navigator.clipboard.writeText(el.dataset.v); toast("Kopiert: " + el.dataset.v); } catch (x) { toast(el.dataset.v); } break;
+      case "euerCsv": await euerCsv(); break;
+      case "newContact": UI.sheet = { type: "contact", d: { id: uid(), name: "", isCustomer: true, isVendor: false, country: "DE" }, isNew: true }; renderSheet(); break;
+      case "openContact": UI.sheet = { type: "contact", d: { ...S.contacts.get(id) } }; renderSheet(); break;
+      case "saveContact": await saveContact(); break;
+      case "archiveContact": await patch("contacts", UI.sheet.d.id, { archived: !UI.sheet.d.archived }); closeSheet(); break;
+      case "newAsset": UI.sheet = { type: "asset", d: { id: uid(), name: "", date: todayISO(), cost: 0, months: 36 }, isNew: true }; renderSheet(); break;
+      case "openAsset": UI.sheet = { type: "asset", d: { ...S.assets.get(id) } }; renderSheet(); break;
+      case "saveAsset": { const a = UI.sheet.d; $$("[data-asf]", $("#sheet")).forEach(x => a[x.dataset.asf] = x.value); a.cost = parseNum(a.cost); a.months = parseInt(a.months, 10) || 36; if (!a.name) { toast("Bitte eine Bezeichnung eintragen."); break; } await put("assets", a.id, a); closeSheet(); break; }
+      case "deleteAsset": if (!confirmInline(el, "Anlage löschen?")) break; await del("assets", UI.sheet.d.id); closeSheet(); break;
+      case "saveSettings": { const d = {}; $$("[data-set]").forEach(x => d[x.dataset.set] = x.value); for (const k of ["nextInvoice", "nextQuote", "paymentDays"]) d[k] = parseInt(d[k], 10) || 0; if (d.kmRate !== undefined) d.kmRate = parseNum(d.kmRate) || 0.75; await saveCompany(d); toast("Einstellungen gespeichert."); break; }
+      case "pickLogo": $("#logoPick").click(); break;
+      case "backup": e.preventDefault(); await backup(); break;
+      case "runImport": await runImport(); break;
+      case "toSetup": viewLogin("setup"); break;
+      case "newTrip": UI.sheet = { type: "trip", d: { id: uid(), date: todayISO(), roundtrip: true, billable: true }, isNew: true }; renderSheet(); break;
+      case "openTrip": e.preventDefault(); UI.sheet = { type: "trip", d: { ...S.trips.get(id) } }; renderSheet(); break;
+      case "saveTrip": { const t = UI.sheet.d; $$("[data-tf]", $("#sheet")).forEach(x => t[x.dataset.tf] = x.value); t.km = parseNum(t.km); t.roundtrip = !!t.roundtrip; t.billable = !!t.billable; if (!t.km) { toast("Bitte die Kilometer eintragen."); break; } await put("trips", t.id, t); closeSheet(); toast("Fahrt gespeichert."); break; }
+      case "deleteTrip": if (!confirmInline(el, "Fahrt löschen?")) break; await del("trips", UI.sheet.d.id); closeSheet(); break;
+      case "addTrips": { const d = readSaleForm(); const trips = [...S.trips.values()].filter(t => t.billable && !t.billedIn && (!d.contactId || !t.contactId || t.contactId === d.contactId)).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+        if (!trips.length) { toast("Keine offenen Fahrten für diesen Kunden im Fahrtenbuch."); break; }
+        d.items = d.items.filter(i => i.desc || parseNum(i.price)); for (const t of trips) d.items.push({ desc: `Anfahrtspauschale ${fmtDate(t.date)}${t.to ? " – " + t.to : ""}${t.roundtrip ? " (Hin- und Rückweg)" : ""}`, qty: Number(t.km), unit: "Kilometer", price: tripRate(), vat: 19, tripId: t.id });
+        renderSheet(); toast(trips.length === 1 ? "1 Fahrt übernommen." : `${trips.length} Fahrten übernommen.`); break; }
+      case "toLogin": viewLogin("login"); break;
+      case "saveGh": { const t = $("#gh-token").value.trim(); if (!/^(github_pat_|ghp_)/.test(t)) { IMP.ghErr = "Das sieht nicht wie ein GitHub-Token aus (beginnt mit github_pat_)."; render(); break; }
+        S.gh = { token: t, repo: GH_REPO_DEFAULT }; try { const r = await gh.req(""); if (!r.ok) throw new Error("Repo labertal-belege nicht erreichbar (" + r.status + ")"); } catch (x) { S.gh = null; IMP.ghErr = x.message; render(); break; }
+        IMP.ghErr = ""; await db.doc("cfg/github").set({ token: t, repo: GH_REPO_DEFAULT, savedAt: new Date().toISOString() }); postSW(); toast("GitHub verbunden."); render(); if (needsImport()) runImport(); break; }
+      case "cqCat": UI.sheet.cq = UI.sheet.cq === el.dataset.cat ? "" : el.dataset.cat; $$("[data-act=cqCat]").forEach(b => b.classList.toggle("on", b.dataset.cat === UI.sheet.cq)); break;
+      case "cqSave": { const st = UI.sheet; const d = st.d; const amt = parseNum($("#cq-amount")?.value); const pm = $("#cq-pm")?.value; const note = $("#cq-note")?.value || "";
+        d.hint = { amount: amt || null, cat: st.cq || null, pay: pm, note }; if (amt) d.items = [{ cat: st.cq || "OtherExpenditure", vat: st.cq === "PrivateWithdrawal" ? 0 : 19, gross: r2(amt) }]; else if (st.cq) d.items[0].cat = st.cq;
+        d.note = note; d.payMethod = pm === "ueberweisung" ? "ueberweisung" : pm; await put("vouchers", d.id, d); const q = st.queue; closeSheet(); toast("Beleg gespeichert – Claude prüft ihn."); if (q?.length) processQueue(q); break; }
+      case "capNext": { const q = UI.sheet.queue; closeSheet(); if (q?.length) processQueue(q); break; }
+      case "claudeCheck": e.preventDefault(); openClaudeCheck(); break;
+      case "pickFolder": $("#folderPick").click(); break;
+      case "logout": await supa.auth.signOut(); break;
+    }
+  } catch (err) { console.error(err); toast("Fehler: " + (err?.message || err)); }
+});
+function confirmInline(btn, msg) { if (btn.dataset.armed === "1") return true; const old = btn.textContent; btn.dataset.armed = "1"; btn.textContent = "Sicher? Nochmal tippen"; toast(msg, 4000); setTimeout(() => { if (btn.isConnected) { btn.dataset.armed = ""; btn.textContent = old; } }, 4000); return false; }
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.inp === "search") { UI.search = el.value; scheduleRender(); return; }
+  if (UI.sheet?.type === "sale" && (el.dataset.it != null)) { const d = readSaleForm(); const i = Number(el.dataset.it); const s = $("#it-sum-" + i); if (s) s.textContent = eur(itemNet(d.items[i])); $("#s-totals").innerHTML = totalsHtml(d, salesTotals(d)); }
+});
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (el.id === "taxYear") { UI.taxYear = Number(el.value); UI.taxMonth = null; render(); return; }
+  if (el.id === "s-contact") { if (el.value === "__new") { const back = UI.sheet; readSaleForm(); UI.sheet = { type: "contact", d: { id: uid(), name: "", isCustomer: true, isVendor: false, country: "DE" }, isNew: true, back }; renderSheet(); return; }
+    const c = S.contacts.get(el.value); const d = readSaleForm(); if (c) { d.contactId = c.id; d.address = { name: c.name, street: c.street, zip: c.zip, city: c.city, country: c.country || "DE", customerNo: c.customerNo, vatId: c.vatId }; } renderSheet(); return; }
+  if (el.id === "s-tax") { readSaleForm(); if (UI.sheet.d.taxMode === "rc13b") UI.sheet.d.items.forEach(i => i.vat = 0); else UI.sheet.d.items.forEach(i => { if (!Number(i.vat)) i.vat = 19; }); renderSheet(); return; }
+  if (el.dataset.f === "vat" && UI.sheet?.type === "sale") { const d = readSaleForm(); $("#s-totals").innerHTML = totalsHtml(d, salesTotals(d)); return; }
+  if (UI.sheet?.type === "voucher" && (el.dataset.vi != null || el.id === "v-kind" || el.id === "v-status")) { readVoucherForm(); if (el.id === "v-status" && el.value === "bezahlt" && !UI.sheet.d.paidDate) UI.sheet.d.paidDate = UI.sheet.d.date; const f = UI.sheet.d.files?.[0]; renderSheet(); renderFilePreview(f); return; }
+  if (el.id === "filePick") { const files = [...el.files]; el.value = ""; if (UI.attach && UI.sheet?.type === "voucher") { UI.attach = false; for (const f of files) { const up = await assets.upload(f); readVoucherForm(); UI.sheet.d.files = [...(UI.sheet.d.files || []), { id: up.id, name: f.name, type: f.type }]; } renderSheet(); renderFilePreview(UI.sheet.d.files[0]); } else { UI.attach = false; handleFiles(files); } return; }
+  if (el.id === "folderPick" || (el.id === "filePick" && el.files.length > 3 && !UI.attach)) { const files = [...el.files].filter(f => /^(image\/|application\/pdf)|\.(pdf|jpe?g|png|heic|xml)$/i.test(f.type + " " + f.name)); el.value = ""; bulkImport(files); return; }
+  if (el.id === "camPick") { const files = [...el.files]; el.value = ""; handleFiles(files); return; }
+  if (el.id === "csvPick") { const f = el.files[0]; el.value = ""; if (f) try { await importBankCsv(f); } catch (x) { toast("CSV konnte nicht gelesen werden: " + x.message); } return; }
+  if (el.id === "logoPick") { const f = el.files[0]; el.value = ""; if (f) { const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }); await saveCompany({ logoData: url }); toast("Logo gespeichert."); } return; }
+});
+["dragover", "dragenter"].forEach(ev => document.addEventListener(ev, e => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } }));
+document.addEventListener("dragleave", e => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
+document.addEventListener("drop", e => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); const fl = [...e.dataTransfer.files]; if (fl.length > 3) bulkImport(fl); else handleFiles(fl); } });
+$("#sheetBg").addEventListener("click", closeSheet);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && UI.sheet) closeSheet(); });
+boot();
+</script>
+</body>
+</html>

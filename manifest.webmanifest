@@ -1,0 +1,19 @@
+{
+  "name": "Labertal Buchhaltung",
+  "short_name": "Labertal",
+  "description": "Belege, Rechnungen und Steuer für Elektrotechnik Labertal",
+  "start_url": "./#start",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f4f8",
+  "theme_color": "#1f63c6",
+  "lang": "de",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Beleg fotografieren", "url": "./#start" }
+  ]
+}
