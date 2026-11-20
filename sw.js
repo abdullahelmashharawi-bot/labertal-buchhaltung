@@ -1,6 +1,6 @@
 // Labertal Buchhaltung – Service Worker
 // 1) App offline startbar  2) Belegbilder (_blob/<id>) aus dem privaten GitHub-Repo laden und zwischenspeichern
-const APP = "lb-app-v1", BLOBS = "lb-blobs", CFG = "lb-cfg";
+const APP = "lb-app-v2", BLOBS = "lb-blobs", CFG = "lb-cfg";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(APP).then(c => c.addAll(SHELL)).catch(() => { })); });
@@ -40,8 +40,19 @@ async function blob(id) {
   return resp;
 }
 
+async function shareIn(req) {
+  // Dateien aus dem Teilen-Menü (z. B. Brother Mobile Connect) zwischenspeichern, die App übernimmt sie beim Öffnen
+  try {
+    const fd = await req.formData(); const c = await caches.open("lb-share"); let i = 0;
+    for (const f of fd.getAll("files")) { if (!f || typeof f === "string") continue;
+      await c.put(new Request(new URL("share/" + Date.now() + "_" + (i++), self.registration.scope).href), new Response(f, { headers: { "Content-Type": f.type || "application/octet-stream", "X-Name": encodeURIComponent(f.name || "scan.pdf") } })); }
+  } catch (x) { }
+  return Response.redirect(new URL("./#share", self.registration.scope).href, 303);
+}
+
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
+  if (e.request.method === "POST" && url.origin === location.origin && url.pathname.endsWith("/share-target")) { e.respondWith(shareIn(e.request)); return; }
   if (url.origin === location.origin && url.pathname.includes("/_blob/")) {
     const id = decodeURIComponent(url.pathname.split("/_blob/")[1] || "");
     e.respondWith(blob(id)); return;

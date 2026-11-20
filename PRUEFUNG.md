@@ -12,7 +12,7 @@ Diese Datei beschreibt, wie Claude die Buchhaltung von Elektrotechnik Labertal (
 1. **Neue Belege auslesen:** `select id, data from docs where col='vouchers' and data->>'status'='claude'`.
    Für jeden Beleg das Bild aus `labertal-belege` öffnen und auslesen: Firma, Belegnummer, Datum, Fälligkeit, bezahlt ja/nein (Kassenbon mit Karte/bar = bezahlt), Positionen je Steuersatz (Brutto), Kategorie, kurze Notiz.
    `data.hint` enthält, was Abdullah beim Fotografieren selbst eingegeben hat (Betrag, Kategorie, Zahlart, Notiz) – bevorzugen.
-   - **Sicher** (alles klar lesbar, Summe passt): direkt buchen. Felder: `vendor, number, date, dueDate, items:[{cat,vat,gross,net,tax}], gross, status ('bezahlt'|'offen'), paidDate, payMethod, payments:[{date,amount,method}], note, readBy:'claude', readAt`.
+   - **Sicher** (alles klar lesbar, Summe passt): direkt buchen. Felder: `vendor, number, date, dueDate, items:[{cat,vat,gross,net,tax}], gross, status ('bezahlt'|'offen'), paidDate, payMethod, payments:[{date,amount,method}], note, readBy:'claude', readAt`, dazu `archiveLabel` = kurze Bezeichnung für den Dateinamen wie Abdullah sie nutzt (Tankbeleg → `Tankstelle`, sonst Firma oder Artikel, z. B. `Bauhaus`, `Abisolierzange`). Die **Ablage-Nummer** (`archive`) vergibt die App selbst – nicht setzen.
      Netto/Steuer je Position: `net = round(gross/(1+vat/100),2)`, `tax = gross-net`.
    - **Unsicher:** Status `claude` lassen, `data.question` mit einer kurzen Frage an Abdullah setzen und im Bericht nennen.
    Kategorien (Schlüssel): Fuel (Tanken), MaterialsGoods (Material), SmallParts (Werkzeug), MotorVehicle (Kfz-Reparatur/Wäsche), MotorVehicleInsurance, MotorVehicleTax, EntertainmentExpenses (Bewirtung), OfficeSupplies, LicencesConcessions (Software, Lexware/Haufe), Telecommunication, InsurancesContributions, AssociationContributions, Seminar, Advertising, WasteDisposalExpenses, OtherExpenditure, PrivateWithdrawal (privat, 0 %), VatPrepayments (Finanzamt USt). Für bekannte Firmen die bisherige Kategorie nehmen (`select data->>'vendor', data->'items'->0->>'cat' ...`).
@@ -21,9 +21,10 @@ Diese Datei beschreibt, wie Claude die Buchhaltung von Elektrotechnik Labertal (
 3. **Plausibilität:** MwSt.-Satz passt zur Kategorie (Versicherungen 0 %, Kraftstoff 19 %), Beträge > 0, Datum nicht in der Zukunft, Tankbelege ohne Kfz-Bezug, Bewirtung ohne Notiz (Anlass/Personen fehlen).
 4. **Offene Posten:** überfällige Rechnungen (`sales`, status `offen`, `dueDate` < heute), offene Ausgaben, Angebote ohne Antwort.
 5. **Fristen:** Umsatzsteuer-Voranmeldung des Vormonats bis zum 10. – gemeldet, wenn `ustva/<JJJJ-MM>` existiert. Ist-Versteuerung: Umsatz bei Zahlung, Vorsteuer nach Belegdatum.
-6. **Sicherung:** `cfg/company.lastBackupAt` älter als 30 Tage → erinnern.
-7. **Bericht speichern:** `cfg/check` = `{ at, summary (1–2 Sätze), findings: [{text, level:'info'|'warn'|'bad', ref?}], booked: <Anzahl>, waiting: <Anzahl> }`. Die App zeigt das auf der Startseite.
-8. Abdullah eine kurze Zusammenfassung schicken (auf Deutsch, einfache Worte).
+6. **Bank & Wiederkehrendes:** Bankumsätze älter als 30 Tage → an N26-CSV erinnern. Regelmäßige Ausgaben (Versicherung, Kfz-Steuer, Abos) prüfen: fehlt ein erwarteter Beleg, im Bericht nennen.
+7. **Sicherung:** `cfg/company.lastBackupAt` älter als 30 Tage → erinnern.
+8. **Bericht speichern:** `cfg/check` = `{ at, summary (1–2 Sätze), findings: [{text, level:'info'|'warn'|'bad', ref?}], booked: <Anzahl>, waiting: <Anzahl> }`. Die App zeigt das auf der Startseite.
+9. Abdullah eine kurze Zusammenfassung schicken (auf Deutsch, einfache Worte).
 
 ## Regeln
 - Festgeschriebene Rechnungen (`sales` mit `finalizedAt`) nie ändern (GoBD).

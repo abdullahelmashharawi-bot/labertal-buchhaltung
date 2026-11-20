@@ -393,9 +393,10 @@ async function startData() {
       S[c] = m; S.loaded.add(c); ready(timer);
     }, err => { console.warn(c, err); S.loaded.add(c); ready(timer); });
   }
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", () => { if (/^#share/.test(location.hash)) takeShared(); render(); });
   navigator.serviceWorker?.addEventListener("controllerchange", postSW);
   await db.loadAll().catch(e => { $("#view").innerHTML = `<div class="card note bad">Laden fehlgeschlagen: ${esc(e.message)}</div>`; });
+  setTimeout(takeShared, 800);
 }
 function ready(timer) { if (!S.ok && S.loaded.size >= COLS.length + 1) { S.ok = true; clearTimeout(timer); } if (S.ok) scheduleRender(); }
 let _rt = 0; function scheduleRender() { cancelAnimationFrame(_rt); _rt = requestAnimationFrame(render); }
@@ -607,7 +608,7 @@ function renderNav() {
     <a href="#mehr" class="${moreOn ? "on" : ""}">${ICON.more}<span>Mehr</span></a>`;
 }
 function render() {
-  if (!S.ok) return; renderNav();
+  if (!S.ok) return; renderNav(); queueArchive();
   const r = route(); const v = $("#view");
   if (S.ok && needsImport() && route() !== "start") { location.hash = "start"; }
   const fn = { fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
@@ -700,6 +701,7 @@ function viewStart() {
   const waitingC = [...S.vouchers.values()].filter(v => v.status === "claude").length;
   if (waitingC) todos.push(`<a href="#belege" class="info" data-act="vtab" data-tab="claude">${ICON.rec}<div><b>${waitingC === 1 ? "1 Beleg wartet" : waitingC + " Belege warten"} auf Claude</b><div class="small muted">Werden beim Wochen-Check ausgelesen – oder jetzt prüfen lassen</div></div></a>`);
   if (pruefen) todos.push(`<a href="#belege" data-act="vtab" data-tab="pruefen">${ICON.rec}<div><b>${pruefen} alte Belege prüfen</b><div class="small muted">Aus Lexware, noch nicht gebucht, viele doppelt</div></div></a>`);
+  { const bt = bankTodo(); if (bt) todos.push(bt); } todos.push(...recurringTodos());
   if (bankOpen) todos.push(`<a href="#bank" class="info">${ICON.bank}<div><b>${bankOpen} Kontoumsätze zuordnen</b></div></a>`);
   for (const d of quotes) todos.push(`<a href="#" class="info" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>Angebot an ${esc(salesName(d))} nachfassen</b><div class="small muted">${esc(d.number)} · ${eur(docGross(d))}</div></div></a>`);
   if (bkDays == null || bkDays > 30) todos.push(`<a href="#" data-act="fullBackup">${ICON.shield}<div><b>Datensicherung machen</b><div class="small muted">${bkDays == null ? "Noch nie gesichert" : `Letzte Sicherung vor ${bkDays} Tagen`} · alle Daten und Belegbilder als ZIP</div></div></a>`);
@@ -716,6 +718,7 @@ function viewStart() {
     <a class="stat" href="#steuer"><div class="lbl">Gewinn ${year} bisher</div><div class="val">${eur(e.profit)}</div><div class="sub">vorläufig, nach EÜR</div></a>
   </div>
   ${todos.length ? `<div class="sec"><h2>Zu erledigen</h2></div><div class="todo">${todos.join("")}</div>` : ""}
+  ${viewReserveCard()}${viewSyncCard()}
   ${viewCheckCard()}
   <div class="sec"><h2>Zuletzt erfasst</h2><a href="#belege" class="small">Alle Belege</a></div>
   <div class="list">${recent.map(voucherRow).join("") || '<div class="empty">Noch keine Belege</div>'}</div>
@@ -961,6 +964,7 @@ function sheetVoucher() {
       ${v.question ? `<div class="note small"><b>Frage von Claude:</b> ${esc(v.question)}<br>Trag die Antwort einfach unten ein und speichere.</div>` : ""}
       ${v.status === "claude" && !v.question ? `<div class="note small">Dieser Beleg wartet darauf, dass Claude ihn ausliest. Du kannst ihn auch selbst ausfüllen.</div>` : ""}
       ${dup ? `<div class="note bad small">Achtung, möglicherweise doppelt: ${esc(vendorName(dup))} ${esc(dup.number || "")} vom ${fmtDate(dup.date)} über ${eur(vGross(dup))}. <a href="#" data-act="openVoucher" data-id="${dup.id}">Ansehen</a></div>` : ""}
+      ${archiveLine(v)}
       <div class="card"><div class="form">
         <label class="f"><span>Art</span><select id="v-kind" data-vf="kind">${Object.entries(V_KIND).map(([k, l]) => `<option value="${k}" ${v.kind === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="f"><span>Firma</span><input id="v-vendor" data-vf="vendor" value="${esc(unent(v.vendor))}" list="vendors"></label>
@@ -1277,9 +1281,205 @@ function viewMore() {
     ${it("#fahrten", "car", "Fahrtenbuch", "Fahrten zu Baustellen, Anfahrt in Rechnung")}
     ${it("#anlagen", "car2", "Anlagen", "Fahrzeug, Maschinen, Abschreibung")}
     ${it("#", "shield", "Claude prüfen lassen", "Belege auslesen, Fehler finden", "claudeCheck")}
+    ${canSync() ? it("#", "file", "Mit Ordner abgleichen", "Belege und Rechnungen nach Z:\\Firma", "syncFolder") : ""}
     ${it("#", "shield", "Datensicherung", "Alles als ZIP auf dein Gerät", "fullBackup")}
     ${it("#einstellungen", "gear", "Einstellungen", "Firma, Bank, Rechnungstexte")}
   </div>`;
+}
+
+/* ===================== Ablage: Nummern, Ordner-Abgleich, Teilen ===================== */
+const ARCH = { busy: false, sync: false, msg: "", t: 0 };
+const isImgFile = f => /image\//.test(f?.type || "") || /\.(jpe?g|png|heic|webp)$/i.test(f?.name || "");
+function safeName(s) { return String(s || "").replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 60) || "Beleg"; }
+function yearDir(y) { return String(y - 2024).padStart(3, "0") + "_" + y; }
+function periodDir(y, m) { const i = Math.ceil(m / 2); return String(i).padStart(4, "0") + "_" + y + "_" + MONTHS[2 * i - 2] + "_" + MONTHS[2 * i - 1]; }
+function archiveLabel(v) {
+  if (v.archiveLabel) return safeName(v.archiveLabel);
+  const c = canon(v.items?.[0]?.cat); if (c === "Fuel") return "Tankstelle";
+  const stop = /^(gmbh|mbh|co|kg|ag|se|ek|sarl|und|für|fur|der|die|das|von|bau|eu|s|a|r|l|niederlassung|gesellschaft|deutschland|station|filiale)$/i;
+  const w = vendorName(v).replace(/\(.*?\)/g, " ").split(/[^A-Za-zÄÖÜäöüß0-9-]+/).filter(x => x.length >= 3 && !stop.test(x));
+  return safeName(w[0] || "Beleg");
+}
+function archiveEligible(v) {
+  const start = S.company?.archive?.startAt; if (!start || !v || v.archive || !v.date) return false;
+  if (v.kind && v.kind !== "ausgabe") return false; if (v.status !== "bezahlt" && v.status !== "offen") return false;
+  if (!(v.files || []).length) return false; return (v.createdAt || v.capturedAt || "") >= start;
+}
+function archiveMaxNo(y) {
+  let mx = Number(S.company?.archive?.max?.[y] || 0);
+  for (const v of S.vouchers.values()) { const a = v.archive; if (!a || Number(a.year) !== y) continue; mx = Math.max(mx, Number(a.no) || 0); for (const x of a.more || []) mx = Math.max(mx, Number(x.no) || 0); }
+  return mx;
+}
+async function assignArchiveNumbers() {
+  if (ARCH.busy || !S.ok) return; const list = [...S.vouchers.values()].filter(archiveEligible).sort((a, b) => (a.date + (a.createdAt || "")).localeCompare(b.date + (b.createdAt || "")));
+  if (!list.length) return; ARCH.busy = true;
+  try {
+    for (const v of list) {
+      const y = Number(v.date.slice(0, 4)), m = Number(v.date.slice(5, 7)); const no = String(archiveMaxNo(y) + 1).padStart(4, "0");
+      const lab = archiveLabel(v); const d = v.date.split("-").reverse().join("_"); const fs = v.files || [];
+      const names = fs.length > 1 && !fs.every(isImgFile) ? fs.map((f, i) => `${no}_${i + 1}von${fs.length}_${d}_${lab}.pdf`) : [`${no}_${d}_${lab}.pdf`];
+      await patch("vouchers", v.id, { archive: { no, year: y, dir: `Ausgaben/${yearDir(y)}/${periodDir(y, m)}`, names, label: lab, at: new Date().toISOString() } });
+    }
+  } catch (e) { console.warn("Ablage", e); } finally { ARCH.busy = false; }
+}
+function queueArchive() { clearTimeout(ARCH.t); ARCH.t = setTimeout(assignArchiveNumbers, 1200); }
+function archiveLine(v) {
+  const a = v.archive; if (!a) return v.status === "bezahlt" || v.status === "offen" ? "" : "";
+  return `<div class="small muted" style="word-break:break-all">Ablage-Nr. <b>${esc(a.no)}</b> · ${esc(a.dir.replace(/^Ausgaben\//, ""))}/${esc(a.names[0])}${a.names.length > 1 ? ` (+${a.names.length - 1})` : ""}</div>`;
+}
+
+/* ---- Ordner am PC (Chrome/Edge): Ausgaben + Einnahmen spiegeln ---- */
+const canSync = () => typeof window.showDirectoryPicker === "function";
+function fsdb() { return new Promise((res, rej) => { const r = indexedDB.open("lb-fs", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function fsGet(k) { try { const d = await fsdb(); return await new Promise(res => { const q = d.transaction("h").objectStore("h").get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
+async function fsSet(k, v) { const d = await fsdb(); await new Promise(res => { const t = d.transaction("h", "readwrite"); t.objectStore("h").put(v, k); t.oncomplete = res; t.onerror = res; }); }
+async function syncRoot(pick) {
+  let h = pick ? null : await fsGet("root");
+  if (!h) {
+    h = await window.showDirectoryPicker({ id: "lb-firma", mode: "readwrite" });
+    let ok = false; for await (const [n, x] of h.entries()) if (x.kind === "directory" && /^(ausgaben|einnahmen)$/i.test(n)) ok = true;
+    if (!ok) throw new Error(`Im Ordner „${h.name}“ gibt es keine Unterordner „Ausgaben“ und „Einnahmen“. Bitte den Ordner Firma auswählen (Z:\\Firma).`);
+    try { await fsSet("root", h); } catch (e) { console.warn("Ordner merken", e); }
+  }
+  if ((await h.queryPermission({ mode: "readwrite" })) !== "granted" && (await h.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error("Zugriff auf den Ordner wurde nicht erlaubt.");
+  return h;
+}
+async function dirList(dh) { const m = new Map(); for await (const [n, x] of dh.entries()) m.set(n.normalize("NFC").toLowerCase(), { n, x }); return m; }
+async function subDir(dh, name, cache) {
+  const k = cache.get(dh) || await dirList(dh); cache.set(dh, k);
+  const hit = k.get(name.normalize("NFC").toLowerCase()); if (hit && hit.x.kind === "directory") return hit.x;
+  const nd = await dh.getDirectoryHandle(name, { create: true }); k.set(name.toLowerCase(), { n: name, x: nd }); return nd;
+}
+async function periodHandle(root, a, month, cache) {
+  // a.dir = "Ausgaben/<Jahr>/<Periode>[/<Monat>]"; vorhandene Ordner deines Systems werden wiederverwendet
+  const parts = a.dir.split("/"); let d = await subDir(root, parts[0], cache); d = await subDir(d, parts[1], cache);
+  if (parts.length > 3) { d = await subDir(d, parts[2], cache); return subDir(d, parts[3], cache); }
+  const list = cache.get(d) || await dirList(d); cache.set(d, list); const want = parts[2]; const idx = want.slice(0, 5);
+  let pd = list.get(want.toLowerCase())?.x; if (!pd) for (const { n, x } of list.values()) if (x.kind === "directory" && (n.startsWith(idx) || (month && n.toLowerCase().includes(MONTHS[month - 1].toLowerCase())))) { pd = x; break; }
+  if (!pd) pd = await subDir(d, want, cache);
+  if (month) { const sl = cache.get(pd) || await dirList(pd); cache.set(pd, sl); for (const { n, x } of sl.values()) if (x.kind === "directory" && new RegExp("^\\d\\d_" + MONTHS[month - 1] + "$", "i").test(n)) return x; }
+  return pd;
+}
+async function blobOf(f) { const r = await fetch("_blob/" + f.id); if (!r.ok) throw new Error("Datei nicht ladbar"); return r.blob(); }
+async function imagesToPdf(blobs) {
+  const { PDFDocument } = PDFLib; const pdf = await PDFDocument.create();
+  for (const b of blobs) {
+    let bytes = new Uint8Array(await b.arrayBuffer()); let img;
+    if (bytes[0] === 0x89) img = await pdf.embedPng(bytes); else if (bytes[0] === 0xff) img = await pdf.embedJpg(bytes);
+    else { const bm = await createImageBitmap(b); const c = document.createElement("canvas"); c.width = bm.width; c.height = bm.height; c.getContext("2d").drawImage(bm, 0, 0); bytes = new Uint8Array(await (await new Promise(r => c.toBlob(r, "image/jpeg", 0.9))).arrayBuffer()); img = await pdf.embedJpg(bytes); }
+    const W = 595.28, s = Math.min(W / img.width, 841.89 / img.height), p = pdf.addPage([img.width * s, img.height * s]); p.drawImage(img, { x: 0, y: 0, width: img.width * s, height: img.height * s });
+  }
+  return new Blob([await pdf.save()], { type: "application/pdf" });
+}
+async function writeFile(dh, name, blob) { const fh = await dh.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(blob); await w.close(); }
+async function syncFolder(pick) {
+  if (!canSync()) { toast("Der Ordner-Abgleich geht am PC in Chrome oder Edge."); return; }
+  if (ARCH.sync) return; ARCH.sync = true; ARCH.msg = "Ordner wird geöffnet …"; render();
+  let wrote = 0, had = 0, err = 0;
+  try {
+    await assignArchiveNumbers(); const root = await syncRoot(pick); const cache = new Map();
+    const vs = [...S.vouchers.values()].filter(v => v.archive && v.status !== "storniert" && (v.files || []).length);
+    let i = 0;
+    for (const v of vs) {
+      i++; if (i % 10 === 0) { ARCH.msg = `Belege: ${i} von ${vs.length} geprüft …`; render(); }
+      try {
+        const a = v.archive; const dh = await periodHandle(root, a, a.dir.split("/").length > 3 ? 0 : Number(v.date?.slice(5, 7)) || 0, cache);
+        const list = cache.get(dh) || await dirList(dh); cache.set(dh, list);
+        const fs = v.files; const imgsOnly = fs.every(isImgFile);
+        for (let k = 0; k < a.names.length; k++) {
+          const name = a.names[k]; if (list.has(name.normalize("NFC").toLowerCase())) { had++; continue; }
+          let blob;
+          if (a.names.length === 1 && fs.length > 1 && imgsOnly) blob = await imagesToPdf(await Promise.all(fs.map(blobOf)));
+          else { const f = fs.find(x => (x.name || "").normalize("NFC") === name.normalize("NFC")) || fs[a.names.length === fs.length ? k : fs.length - 1]; const b = await blobOf(f); blob = isImgFile(f) ? await imagesToPdf([b]) : b; }
+          await writeFile(dh, name, blob); list.set(name.toLowerCase(), { n: name, x: { kind: "file" } }); wrote++;
+        }
+      } catch (e) { console.warn("Ablage", v.id, e); err++; }
+    }
+    // Einnahmen: Rechnungen je Kunde
+    const ein = await subDir(root, "Einnahmen", cache); const map = { ...(S.company?.archive?.customers || {}) }; let mapChanged = false;
+    const sales = [...S.sales.values()].filter(d => d.kind === "rechnung" && d.number && d.status !== "entwurf");
+    ARCH.msg = "Rechnungen werden abgeglichen …"; render();
+    for (const d of sales) {
+      try {
+        let folder = map[d.contactId]; if (!folder) { folder = safeName(salesName(d)).replace(/\s+/g, "_"); map[d.contactId || folder] = folder; mapChanged = true; }
+        const dh = await subDir(ein, folder, cache); const list = cache.get(dh) || await dirList(dh); cache.set(dh, list);
+        const name = `Rechnung_${d.number}.pdf`; if (list.has(name.toLowerCase())) { had++; continue; }
+        const pf = (d.files || []).filter(f => /pdf/.test(f.type || "") || /\.pdf$/i.test(f.name || "")).pop();
+        const blob = pf ? await blobOf(pf) : new Blob([await buildSalePdf(d)], { type: "application/pdf" });
+        await writeFile(dh, name, blob); list.set(name.toLowerCase(), { n: name, x: { kind: "file" } }); wrote++;
+      } catch (e) { console.warn("Ablage Rechnung", d.number, e); err++; }
+    }
+    await saveCompany({ archive: { ...(S.company.archive || {}), ...(mapChanged ? { customers: map } : {}), lastSync: new Date().toISOString(), lastSyncRoot: root.name } });
+    toast(wrote ? `${wrote} neue Dateien in deinem Ordner gespeichert${err ? `, ${err} Fehler` : ""}.` : `Alles schon da – ${had} Dateien geprüft${err ? `, ${err} Fehler` : ""}.`, 7000);
+  } catch (e) { if (e?.name !== "AbortError") toast(e.message || String(e), 8000); }
+  finally { ARCH.sync = false; ARCH.msg = ""; render(); }
+}
+function viewSyncCard() {
+  if (!canSync()) return "";
+  const a = S.company?.archive || {}; const n = [...S.vouchers.values()].filter(v => v.archive && (v.archive.at || "") > (a.lastSync || "")).length;
+  return `<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between;gap:12px"><div style="flex:1;min-width:220px">
+    <h3>Ordner am PC</h3><div class="small muted">${a.lastSync ? `Zuletzt abgeglichen ${fmtDate(a.lastSync.slice(0, 10))} mit „${esc(a.lastSyncRoot || "Firma")}“` : "Noch nie abgeglichen – beim ersten Mal den Ordner Z:\\Firma auswählen"}${n ? ` · <b>${n} neue Belege</b>` : ""}</div>
+    ${ARCH.sync ? `<div class="small" style="margin-top:6px"><span class="spin"></span> ${esc(ARCH.msg)}</div>` : ""}</div>
+    <div class="row"><button class="btn pri" data-act="syncFolder" ${ARCH.sync ? "disabled" : ""}>${ICON.file} Mit Ordner abgleichen</button>${a.lastSync ? `<button class="btn sm" data-act="syncFolderPick">anderen Ordner</button>` : ""}</div></div></div>`;
+}
+
+/* ---- Teilen aus anderen Apps (Brother Mobile Connect …) ---- */
+let _shareBusy = false;
+async function takeShared() {
+  if (_shareBusy || !("caches" in window)) return; _shareBusy = true;
+  try {
+    const c = await caches.open("lb-share"); const keys = await c.keys(); if (!keys.length) return;
+    const files = []; for (const k of keys) { const r = await c.match(k); if (r) { const b = await r.blob(); files.push(new File([b], decodeURIComponent(r.headers.get("X-Name") || "scan.pdf"), { type: b.type || r.headers.get("Content-Type") || "" })); } await c.delete(k); }
+    if (/^#share/.test(location.hash)) history.replaceState(null, "", "#belege");
+    if (files.length) { toast(`${files.length} ${files.length === 1 ? "Datei" : "Dateien"} aus dem Teilen-Menü übernommen.`); await bulkImport(files); }
+  } catch (e) { console.warn("share", e); } finally { _shareBusy = false; }
+}
+
+/* ---- Steuer-Rücklage, Bank-Erinnerung, wiederkehrende Ausgaben ---- */
+function reserveCalc() {
+  const now = new Date(), y = now.getFullYear(); const rate = Number(S.company?.taxReserveRate || 30);
+  const e = euerCalc(y); const est = Math.max(0, r2(e.profit * rate / 100));
+  const pm = new Date(y, now.getMonth() - 1, 1); const prev = periodRange(pm.getFullYear(), pm.getMonth() + 1); const cur = periodRange(y, now.getMonth() + 1);
+  const up = S.ustva.get(prev.key) ? 0 : ustvaCalc(prev.from, prev.to).k83; const uc = ustvaCalc(cur.from, todayISO()).k83;
+  const ust = Math.max(0, r2((up > 0 ? up : 0) + (uc > 0 ? uc : 0)));
+  return { rate, est, profit: e.profit, ust, total: r2(est + ust), prevLabel: MONTHS[pm.getMonth()], curLabel: MONTHS[now.getMonth()] };
+}
+function viewReserveCard() {
+  const r = reserveCalc(); if (!r.total) return "";
+  return `<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start"><div style="flex:1;min-width:220px">
+    <h3>Steuer-Rücklage</h3><div class="small muted">So viel solltest du ungefähr zur Seite legen – am besten auf ein eigenes Unterkonto.</div>
+    <ul class="small" style="margin:8px 0 0;padding-left:18px"><li>Einkommensteuer: ca. ${eur(r.est)} (${fmtNum(r.rate, 0)} % vom Gewinn ${eur(r.profit)} in ${new Date().getFullYear()})</li>
+    ${r.ust ? `<li>Umsatzsteuer noch ans Finanzamt: ${eur(r.ust)} (${r.prevLabel}${r.ust ? " + " + r.curLabel + " bisher" : ""})</li>` : ""}</ul>
+    <div class="small muted" style="margin-top:6px">Grobe Schätzung. Weil du zusätzlich angestellt bist, liegt dein Steuersatz meist höher – den Prozentsatz kannst du in den Einstellungen ändern.</div></div>
+    <div style="text-align:right"><div class="small muted">Rücklage</div><div style="font-size:26px;font-weight:700">${eur(r.total)}</div></div></div></div>`;
+}
+function bankTodo() {
+  let last = ""; for (const b of S.bank.values()) if ((b.date || "") > last) last = b.date;
+  const days = last ? Math.floor((Date.now() - new Date(last)) / 864e5) : 999;
+  if (days < 30) return "";
+  return `<a href="#bank" class="info">${ICON.bank}<div><b>Kontoauszug hochladen (N26-CSV)</b><div class="small muted">${last ? `Letzte Buchung vom ${fmtDate(last)}` : "Noch keine Bankdaten"} · damit Claude Zahlungen und fehlende Belege abgleichen kann</div></div></a>`;
+}
+function recurringList() {
+  const ign = new Set(S.company?.recurringIgnore || []); const g = new Map();
+  for (const v of S.vouchers.values()) {
+    if ((v.kind && v.kind !== "ausgabe") || !(v.status === "bezahlt" || v.status === "offen") || !v.date) continue;
+    const c = canon(v.items?.[0]?.cat); if (["Fuel", "MaterialsGoods", "PurchasedMaterials", "SmallParts", "OfficeSupplies", "VatPrepayments", "EntertainmentExpenses"].includes(c)) continue;
+    const key = vendorName(v).toLowerCase().replace(/[^a-zäöüß ]/g, " ").trim().split(/\s+/)[0]; if (!key || key.length < 3) continue;
+    if (!g.has(key)) g.set(key, []); g.get(key).push(v);
+  }
+  const out = [];
+  for (const [key, arr] of g) {
+    if (arr.length < 3 || ign.has(key)) continue; arr.sort((a, b) => a.date.localeCompare(b.date));
+    const ds = arr.map(v => new Date(v.date).getTime()); const gaps = ds.slice(1).map((t, i) => (t - ds[i]) / 864e5).sort((a, b) => a - b); const med = gaps[Math.floor(gaps.length / 2)];
+    const kind = med >= 25 && med <= 35 ? "monatlich" : med >= 80 && med <= 100 ? "vierteljährlich" : med >= 340 && med <= 390 ? "jährlich" : ""; if (!kind) continue;
+    const amts = arr.slice(-4).map(vGross); if (Math.max(...amts) > 1.3 * Math.min(...amts)) continue;
+    const last = arr[arr.length - 1]; const due = ds[ds.length - 1] + med * 864e5; const late = Math.floor((Date.now() - due) / 864e5);
+    out.push({ key, name: vendorName(last), kind, last: last.date, amount: vGross(last), late });
+  }
+  return out.sort((a, b) => b.late - a.late);
+}
+function recurringTodos() {
+  return recurringList().filter(r => r.late > 10).slice(0, 3).map(r => `<a href="#belege" class="info">${ICON.rec}<div><b>Beleg von ${esc(r.name)} fehlt?</b><div class="small muted">Kommt sonst ${r.kind} (zuletzt ${fmtDate(r.last)}, ${eur(r.amount)}) · <u data-act="hideRecurring" data-k="${esc(r.key)}">nicht mehr erinnern</u></div></div></a>`);
 }
 
 /* ===================== Fahrtenbuch ===================== */
@@ -1368,7 +1568,7 @@ function viewSettings() {
   <div class="grid">
   <div class="card"><h3>Firma</h3><div class="row" style="margin:10px 0">${c.logoData ? `<img src="${c.logoData}" alt="Logo" style="height:64px">` : ""}<button class="btn sm" data-act="pickLogo">Logo ändern</button></div><div class="form">
     ${f("name", "Firmenname")}${f("owner", "Inhaber")}${f("street", "Straße")}${f("zip", "PLZ")}${f("city", "Ort")}${f("phone", "Telefon")}${f("email", "E-Mail")}${f("web", "Webseite")}</div></div>
-  <div class="card"><h3>Steuer &amp; Bank</h3><div class="form">${f("taxNo", "Steuernummer")}${f("vatId", "USt-IdNr.")}${f("bankName", "Bank")}${f("iban", "IBAN")}${f("bic", "BIC")}${f("accountHolder", "Kontoinhaber")}</div>
+  <div class="card"><h3>Steuer &amp; Bank</h3><div class="form">${f("taxNo", "Steuernummer")}${f("taxReserveRate", "Steuer-Rücklage (% vom Gewinn)")}${f("vatId", "USt-IdNr.")}${f("bankName", "Bank")}${f("iban", "IBAN")}${f("bic", "BIC")}${f("accountHolder", "Kontoinhaber")}</div>
     <p class="small muted">Besteuerung: Ist-Versteuerung, Gewinnermittlung EÜR, monatliche Voranmeldung, Kontenrahmen SKR 04 (übernommen aus Lexware).</p></div>
   <div class="card"><h3>Rechnungen</h3><div class="form">${f("invoicePrefix", "Präfix Rechnungen")}${f("nextInvoice", "Nächste Rechnungsnummer")}${f("quotePrefix", "Präfix Angebote")}${f("nextQuote", "Nächste Angebotsnummer")}${f("paymentDays", "Zahlungsziel (Tage)")}${f("kmRate", "Fahrtkosten € pro km")}${f("terms", "Zahlungsbedingungen", 1)}${f("intro", "Einleitung Rechnung", 1)}${f("closing", "Schlusstext Rechnung", 1)}${f("quoteIntro", "Einleitung Angebot", 1)}${f("quoteClosing", "Schlusstext Angebot", 1)}</div></div>
   <div class="card"><h3>Belege-Archiv (GitHub)</h3><p class="small">Belegbilder werden im privaten Repo <b>${esc(S.gh?.repo || GH_REPO_DEFAULT)}</b> gespeichert. ${S.gh?.token ? `Verbunden seit ${fmtDate((S.gh.savedAt || "").slice(0, 10))}.` : "Noch nicht verbunden."}</p>
@@ -1567,6 +1767,9 @@ document.addEventListener("click", async e => {
       case "capCat": { const c = el.dataset.cat; UI.sheet.d.items = UI.sheet.d.items.map((i, k) => k === 0 ? { ...i, cat: c, ...(c === "PrivateWithdrawal" ? { vat: 0 } : {}) } : i); delete UI.sheet.d.items[0].net; delete UI.sheet.d.items[0].tax; renderSheet(); renderFilePreview(UI.sheet.d.files?.[0]); break; }
       case "capRetry": { const st = UI.sheet; st.ai = "busy"; renderSheet(); renderFilePreview(st.d.files?.[0]); try { const res = await extractVoucher(st.file); if (UI.sheet !== st) break; Object.assign(st.d, res.fields); st.ai = "done"; st.aiConf = res.conf; st.einv = res.einv; } catch (x) { st.ai = "err"; st.aiErr = x?.message || String(x); } renderSheet(); renderFilePreview(st.d.files?.[0]); break; }
       case "fullBackup": e.preventDefault(); await fullBackup(); break;
+      case "syncFolder": e.preventDefault(); await syncFolder(false); break;
+      case "syncFolderPick": e.preventDefault(); await syncFolder(true); break;
+      case "hideRecurring": { e.preventDefault(); e.stopPropagation(); const k = el.dataset.k; await saveCompany({ recurringIgnore: [...new Set([...(S.company?.recurringIgnore || []), k])] }); toast("Ok, keine Erinnerung mehr dafür."); break; }
       case "gobackup": break;
       case "pickFiles": $("#filePick").click(); break;
       case "manualVoucher": openVoucherEditor(blankVoucher(), true); break;
@@ -1600,7 +1803,7 @@ document.addEventListener("click", async e => {
       case "openAsset": UI.sheet = { type: "asset", d: { ...S.assets.get(id) } }; renderSheet(); break;
       case "saveAsset": { const a = UI.sheet.d; $$("[data-asf]", $("#sheet")).forEach(x => a[x.dataset.asf] = x.value); a.cost = parseNum(a.cost); a.months = parseInt(a.months, 10) || 36; if (!a.name) { toast("Bitte eine Bezeichnung eintragen."); break; } await put("assets", a.id, a); closeSheet(); break; }
       case "deleteAsset": if (!confirmInline(el, "Anlage löschen?")) break; await del("assets", UI.sheet.d.id); closeSheet(); break;
-      case "saveSettings": { const d = {}; $$("[data-set]").forEach(x => d[x.dataset.set] = x.value); for (const k of ["nextInvoice", "nextQuote", "paymentDays"]) d[k] = parseInt(d[k], 10) || 0; if (d.kmRate !== undefined) d.kmRate = parseNum(d.kmRate) || 0.75; await saveCompany(d); toast("Einstellungen gespeichert."); break; }
+      case "saveSettings": { const d = {}; $$("[data-set]").forEach(x => d[x.dataset.set] = x.value); for (const k of ["nextInvoice", "nextQuote", "paymentDays"]) d[k] = parseInt(d[k], 10) || 0; if (d.kmRate !== undefined) d.kmRate = parseNum(d.kmRate) || 0.75; if (d.taxReserveRate !== undefined) d.taxReserveRate = parseNum(d.taxReserveRate) || 30; await saveCompany(d); toast("Einstellungen gespeichert."); break; }
       case "pickLogo": $("#logoPick").click(); break;
       case "backup": e.preventDefault(); await backup(); break;
       case "runImport": await runImport(); break;
