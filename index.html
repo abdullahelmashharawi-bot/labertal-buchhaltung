@@ -1386,6 +1386,19 @@ async function syncFolder(pick) {
         const a = v.archive; const dh = await periodHandle(root, a, a.dir.split("/").length > 3 ? 0 : Number(v.date?.slice(5, 7)) || 0, cache);
         const list = cache.get(dh) || await dirList(dh); cache.set(dh, list);
         const fs = v.files; const imgsOnly = fs.every(isImgFile);
+        // Mehrseitige PDF wie in deinem Ordner: jede Seite eigene Datei 0108_1von2_…, 0108_2von2_…
+        if (fs.length === 1 && !isImgFile(fs[0]) && !(a.names.length === 1 && list.has(a.names[0].normalize("NFC").toLowerCase()))) {
+          const want = a.names.length > 1 ? a.names : null;
+          if (!(want && want.every(n => list.has(n.normalize("NFC").toLowerCase())))) {
+            const src = await blobOf(fs[0]); const { PDFDocument } = PDFLib; const doc = await PDFDocument.load(await src.arrayBuffer(), { ignoreEncryption: true }); const n = doc.getPageCount();
+            if (n > 1) {
+              const names = want && want.length === n ? want : Array.from({ length: n }, (_, i) => a.names[0].replace(/^(\d{4})_(?:\d+von\d+_)?/, `$1_${i + 1}von${n}_`));
+              for (let i = 0; i < n; i++) { const nm = names[i]; if (list.has(nm.normalize("NFC").toLowerCase())) { had++; continue; } const one = await PDFDocument.create(); const [pg] = await one.copyPages(doc, [i]); one.addPage(pg); await writeFile(dh, nm, new Blob([await one.save()], { type: "application/pdf" })); list.set(nm.toLowerCase(), { n: nm, x: { kind: "file" } }); wrote++; }
+              if (a.names.join("|") !== names.join("|")) await patch("vouchers", v.id, { archive: { ...a, names } });
+              continue;
+            }
+          }
+        }
         for (let k = 0; k < a.names.length; k++) {
           const name = a.names[k]; if (list.has(name.normalize("NFC").toLowerCase())) { had++; continue; }
           let blob;
