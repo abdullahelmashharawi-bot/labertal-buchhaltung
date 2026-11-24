@@ -1329,7 +1329,7 @@ function archiveLine(v) {
 }
 
 /* ---- Ordner am PC (Chrome/Edge): Ausgaben + Einnahmen spiegeln ---- */
-const canSync = () => typeof window.showDirectoryPicker === "function";
+const canSync = () => typeof window.showDirectoryPicker === "function" && !/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 function fsdb() { return new Promise((res, rej) => { const r = indexedDB.open("lb-fs", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function fsGet(k) { try { const d = await fsdb(); return await new Promise(res => { const q = d.transaction("h").objectStore("h").get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
 async function fsSet(k, v) { const d = await fsdb(); await new Promise(res => { const t = d.transaction("h", "readwrite"); t.objectStore("h").put(v, k); t.oncomplete = res; t.onerror = res; }); }
