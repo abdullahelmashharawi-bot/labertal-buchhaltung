@@ -163,6 +163,8 @@ label.f > span{font-weight:500}
 .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--chip);color:var(--muted);flex:none;overflow:hidden}
 .ic svg{width:22px;height:22px}
 .ic img{width:100%;height:100%;object-fit:cover}
+.ic.pic{height:58px;border-radius:8px;background:#fff;border:1px solid var(--line)}
+.ic.pic img{object-position:top}
 .ic.fuel{background:#fff1dc;color:#b46a00} .ic.mat{background:#e6efff;color:#1f63c6} .ic.tool{background:#ece8ff;color:#5b44c9}
 .ic.car{background:#e3f5ec;color:#1f8a4c} .ic.food{background:#ffe8e6;color:#c23b31} .ic.soft{background:#e6f6fb;color:#0f7a99}
 .ic.tax{background:#f1f1f1;color:#555} .ic.inc{background:#e3f5ec;color:#1f8a4c}
@@ -608,7 +610,7 @@ function renderNav() {
     <a href="#mehr" class="${moreOn ? "on" : ""}">${ICON.more}<span>Mehr</span></a>`;
 }
 function render() {
-  if (!S.ok) return; renderNav(); queueArchive();
+  if (!S.ok) return; renderNav(); queueArchive(); queueThumbs();
   const r = route(); const v = $("#view");
   if (S.ok && needsImport() && route() !== "start") { location.hash = "start"; }
   const fn = { fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
@@ -655,7 +657,8 @@ async function runImport() {
 function voucherRow(v) {
   const inc = INCOME_KINDS.includes(v.kind); const cat = canon(v.items?.[0]?.cat); const g = sgnV(v) * vGross(v);
   const cats = [...new Set((v.items || []).map(i => catLabel(canon(i.cat))))].join(", ");
-  const thumb = v.files?.[0] && /image/.test(v.files[0].type || "") ? `<span class="ic"><img src="_blob/${esc(v.files[0].id)}" alt="" loading="lazy"></span>` : catIcon(cat, inc);
+  const tid = (v.thumb && v.thumbOf === v.files?.[0]?.id ? v.thumb : "") || (v.files?.[0] && /image/.test(v.files[0].type || "") ? v.files[0].id : "");
+  const thumb = tid ? `<span class="ic pic"><img src="_blob/${esc(tid)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('pic');this.remove()"></span>` : catIcon(cat, inc);
   if (v.status === "claude") return `<a class="li" href="#" data-act="openVoucher" data-id="${v.id}">${thumb}<div><div class="t">${esc(v.hint?.note || v.note || "Neuer Beleg")}</div><div class="s">erfasst ${fmtDate((v.capturedAt || v.createdAt || v.date || "").slice(0, 10))}${v.hint?.amount ? " · " + eur(v.hint.amount) : ""}${v.question ? ' · <b style="color:var(--warn)">Frage von Claude</b>' : ""}</div></div><div class="a">${vChip(v)}</div></a>`;
   return `<a class="li" href="#" data-act="openVoucher" data-id="${v.id}">${thumb}<div><div class="t">${esc(vendorName(v))}</div><div class="s">${esc(cats)} · ${fmtDate(v.date)}</div></div><div class="a" style="color:${inc ? "var(--good)" : "inherit"}">${inc ? "+" : ""}${eur(inc ? g : -g).replace("-", "−")}<br>${v.status === "bezahlt" ? "" : vChip(v)}</div></a>`;
 }
@@ -1322,6 +1325,30 @@ async function assignArchiveNumbers() {
     }
   } catch (e) { console.warn("Ablage", e); } finally { ARCH.busy = false; }
 }
+/* Vorschaubild je Beleg (erste Seite, zugeschnitten) – wird einmal erzeugt und im Beleg-Speicher abgelegt */
+const THUMB = { busy: false, t: 0, failed: new Set() };
+function mainFile(v) { return (v.files || [])[0]; }
+async function thumbBlob(f) {
+  const b = await blobOf(f); let src;
+  if (/pdf/.test(f.type || "") || /\.pdf$/i.test(f.name || "")) { const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await b.arrayBuffer()) }).promise; const pg = await pdf.getPage(1); const vp = pg.getViewport({ scale: 0.8 }); src = document.createElement("canvas"); src.width = vp.width; src.height = vp.height; await pg.render({ canvasContext: src.getContext("2d"), viewport: vp }).promise; }
+  else { const bmp = await createImageBitmap(b); src = document.createElement("canvas"); const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height)); src.width = bmp.width * k; src.height = bmp.height * k; src.getContext("2d").drawImage(bmp, 0, 0, src.width, src.height); }
+  // weißen Rand abschneiden
+  const ctx = src.getContext("2d"); const { data, width: w, height: h } = ctx.getImageData(0, 0, src.width, src.height); let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) { const i = (y * w + x) * 4; if (data[i] + data[i + 1] + data[i + 2] < 600) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+  if (x1 <= x0 || y1 <= y0 || (x1 - x0) * (y1 - y0) < 0.05 * w * h) { x0 = 0; y0 = 0; x1 = w; y1 = h; }
+  const cw = x1 - x0, ch = y1 - y0, k = Math.min(1, 240 / cw, 360 / ch); const out = document.createElement("canvas"); out.width = Math.round(cw * k); out.height = Math.round(ch * k);
+  const o = out.getContext("2d"); o.fillStyle = "#fff"; o.fillRect(0, 0, out.width, out.height); o.drawImage(src, x0, y0, cw, ch, 0, 0, out.width, out.height);
+  return await new Promise(r => out.toBlob(r, "image/jpeg", 0.65));
+}
+async function makeThumbs() {
+  if (THUMB.busy || !S.ok || !navigator.onLine || typeof pdfjsLib === "undefined") return;
+  const v = [...S.vouchers.values()].find(v => (v.files || []).length && (!v.thumb || v.thumbOf !== v.files[0].id) && v.status !== "claude" && !THUMB.failed.has(v.id)); if (!v) return;
+  THUMB.busy = true;
+  try { const blob = await thumbBlob(mainFile(v)); const up = await assets.upload(new File([blob], "vorschau.jpg", { type: "image/jpeg" })); const cur = S.vouchers.get(v.id); if (cur && cur.files?.[0]?.id === v.files[0].id) await patch("vouchers", v.id, { thumb: up.id, thumbOf: v.files[0].id }); }
+  catch (e) { console.warn("Vorschau", v.id, e); THUMB.failed.add(v.id); }
+  finally { THUMB.busy = false; clearTimeout(THUMB.t); THUMB.t = setTimeout(makeThumbs, 1500); }
+}
+function queueThumbs() { clearTimeout(THUMB.t); THUMB.t = setTimeout(makeThumbs, 4000); }
 function queueArchive() { clearTimeout(ARCH.t); ARCH.t = setTimeout(assignArchiveNumbers, 1200); }
 function archiveLine(v) {
   const a = v.archive; if (!a) return v.status === "bezahlt" || v.status === "offen" ? "" : "";
