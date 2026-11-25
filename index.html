@@ -1523,11 +1523,14 @@ async function syncFolder(pick) {
     for (const pr of [...S.protocols.values()].filter(x => x.status === "fertig" && x.pdf?.id)) {
       try { const name = pr.pdf.name || pName(pr); const get = () => blobOf(pr.pdf);
         await put1(await subDir(prot, (pr.date || todayISO()).slice(0, 4), cache), name, get);
-        const kd = await subDir(kunden, folderOf(pr.contactId, pr.address?.name), cache); await put1(await subDir(kd, "Protokolle", cache), name, get);
+        const kd = await subDir(kunden, folderOf(pr.contactId, pr.address?.name), cache); await put1(await subDir(kd, "Protokolle", cache), `${fileDate(pr.date)}_${protoTopic(pr)}_Pruefprotokoll_${pr.number}.pdf`, get);
       } catch (e) { console.warn("Protokoll", pr.number, e); err++; }
     }
     for (const j of [...S.jobs.values()].filter(x => x.status === "fertig" && x.pdf?.id)) {
-      try { const kd = await subDir(kunden, folderOf(j.contactId, j.address?.name), cache); await put1(await subDir(kd, "Berichte", cache), j.pdf.name, () => blobOf(j.pdf)); } catch (e) { console.warn("Bericht", j.number, e); err++; }
+      try { const kd = await subDir(kunden, folderOf(j.contactId, j.address?.name), cache); const bd = await subDir(await subDir(kd, "Berichte", cache), jFolderName(j), cache);
+        await put1(bd, jPdfName(j), () => blobOf(j.pdf));
+        const cnt = { vorher: 0, nachher: 0 }; for (const p of (j.photos || []).filter(x => x.id)) { cnt[p.kind] = (cnt[p.kind] || 0) + 1; await put1(bd, `${p.kind === "vorher" ? "Vorher" : "Nachher"}_${cnt[p.kind]}.jpg`, () => blobOf(p)); }
+      } catch (e) { console.warn("Bericht", j.number, e); err++; }
     }
     // leere Unterordner für jeden Kunden mit Auftrag anlegen
     for (const cid of new Set([...S.sales.values()].filter(d => d.number && d.status !== "entwurf").map(d => d.contactId).filter(Boolean))) { try { const kd = await subDir(kunden, folderOf(cid), cache); for (const n of ["Angebote", "Rechnungen", "Protokolle"]) await subDir(kd, n, cache); } catch (e) { } }
@@ -2000,6 +2003,7 @@ function sheetProtocol() {
       ${pIn("date", d.date, "Prüfdatum", { type: "date", ro })}
       ${pSel("reason", d.reason, "Anlass", Object.entries(P_REASON).filter(([k]) => t.inst ? !k.startsWith("geraet") : k.startsWith("geraet")), { ro })}
       ${pIn("norm", d.norm, "Prüfgrundlage", { ro })}
+      ${pIn("topic", d.topic, "Thema (für den Dateinamen)", { ro, ph: "automatisch: " + protoTopic({ ...d, topic: "" }).replace(/_/g, " ") })}
       ${pSel("saleId", d.saleId, "Gehört zu Rechnung / Angebot", [["", "–"], ...sales.map(x => [x.id, `${x.kind === "angebot" ? "Angebot" : "Rechnung"} ${x.number || "Entwurf"} · ${fmtDate(x.date)}`])], { ro })}
       ${pIn("inspector", d.inspector, "Prüfer (Elektrofachkraft)", { ro })}
     </div></div>
@@ -2180,6 +2184,11 @@ function protoTodos() {
 }
 
 /* ===================== Einsätze: Fotos, Sprachnotiz, Arbeitsbericht ===================== */
+const TOPICS = [[/wall\s*box|ladestation|ladepunkt|ladesäule|e-?auto/i, "Wallbox"], [/zählerschrank|zaehlerschrank|zählerplatz/i, "Zählerschrank"], [/unterverteil|verteiler|sicherungskasten/i, "Verteiler"], [/photovoltaik|\bpv\b|solar|wechselrichter|speicher/i, "PV-Anlage"], [/e-?check|wiederholungsprüfung/i, "E-Check"], [/geräteprüfung|0701|0702|dguv/i, "Geräteprüfung"], [/herd|backofen|kochfeld/i, "Herdanschluss"], [/beleuchtung|lampe|leuchte|licht/i, "Beleuchtung"], [/steckdose/i, "Steckdosen"], [/netzwerk|lan|glasfaser|datenkabel/i, "Netzwerk"], [/klingel|sprechanlage/i, "Sprechanlage"], [/wärmepumpe/i, "Wärmepumpe"], [/rauchmelder/i, "Rauchmelder"], [/smart\s*home|knx|homematic/i, "Smart Home"], [/kamera|überwachung/i, "Kamera"], [/hausanschluss|erdung|potentialausgleich/i, "Hausanschluss"], [/störung|fehlersuche|reparatur|defekt/i, "Reparatur"]];
+function topicOf(text) { const t = String(text || ""); for (const [re, n] of TOPICS) if (re.test(t)) return n; const w = t.replace(/[^\wäöüÄÖÜß\s-]/g, " ").split(/\s+/).filter(x => x.length > 2 && !/^(und|der|die|das|mit|für|von|bei|neu|neue|neuen|montieren|montiert|installieren|tauschen|einbauen|anschließen|setzen|anbringen|erneuern|heute|wurde|habe)$/i.test(x)); return safeName(w.slice(0, 2).join(" ")) || "Einsatz"; }
+const fileDate = iso => (iso || todayISO()).split("-").reverse().join("_");
+function jobTopic(j) { return safeName(j.topic || topicOf([j.title, j.notes, ...(j.dictations || []).map(d => d.text)].join(" "))).replace(/\s+/g, "_"); }
+function protoTopic(d) { const t = PT[d.template] || {}; if (d.topic) return safeName(d.topic).replace(/\s+/g, "_"); if (d.template === "wallbox") return "Wallbox"; if (d.template === "verteiler") return "Zählerschrank"; if (d.template === "wiederholung") return "E-Check"; if (d.template === "geraet") return "Geräteprüfung"; return topicOf(d.circuits.map(c => c.name).join(" ")).replace(/\s+/g, "_") || t.short || "Prüfung"; }
 async function shrinkImage(f, max = 2000) { try { const bm = await createImageBitmap(f); const k = Math.min(1, max / Math.max(bm.width, bm.height)); if (k === 1 && f.size < 1.5e6) return f; const cv = document.createElement("canvas"); cv.width = Math.round(bm.width * k); cv.height = Math.round(bm.height * k); cv.getContext("2d").drawImage(bm, 0, 0, cv.width, cv.height); const b = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85)); return new File([b], (f.name || "foto").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }); } catch (e) { return f; } }
 const J_STATUS = { entwurf: ["Entwurf", ""], claude: ["bei Claude", "info"], bericht: ["Bericht prüfen", "warn"], fertig: ["fertig", "good"] };
 function newJob(extra = {}) { return { id: uid(), status: "entwurf", date: todayISO(), contactId: "", address: {}, site: "", title: "", start: "", end: "", pause: "", photos: [], notes: "", dictations: [], report: "", sign: {}, createdAt: new Date().toISOString(), ...extra }; }
@@ -2206,6 +2215,7 @@ function sheetJob() {
     <div class="card"><div class="form">
       <label class="f wide"><span>Kunde</span><select data-jp="contactId" ${ro ? "disabled" : ""}>${contactOptions(j.contactId, "isCustomer").replace('<option value="__new">+ Neuer Kontakt …</option>', "")}</select></label>
       <label class="f wide"><span>Was wird gemacht?</span><input data-jp="title" value="${esc(j.title || "")}" placeholder="z. B. Wallbox montieren" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Thema (für den Ordnernamen)</span><input data-jp="topic" value="${esc(j.topic || "")}" placeholder="automatisch: ${esc(jobTopic({ ...j, topic: "" }).replace(/_/g, " "))}" ${ro ? "disabled" : ""}></label>
       <label class="f"><span>Datum</span><input type="date" data-jp="date" value="${esc(j.date || "")}" ${ro ? "disabled" : ""}></label>
       <label class="f"><span>Baustelle / Ort</span><input data-jp="site" value="${esc(j.site || "")}" placeholder="falls nicht Kundenadresse" ${ro ? "disabled" : ""}></label>
       <label class="f"><span>Beginn</span><input type="time" data-jp="start" value="${esc(j.start || "")}" ${ro ? "disabled" : ""}></label>
@@ -2263,7 +2273,8 @@ async function jRecFinish() {
   if (UI.sheet?.type === "job") jRerender();
 }
 function jNextNo(year) { let max = 0; for (const x of S.jobs.values()) if (x.number?.startsWith("B-" + year + "-")) max = Math.max(max, Number(x.number.split("-")[2]) || 0); return `B-${year}-${String(max + 1).padStart(3, "0")}`; }
-function jPdfName(j) { const k = pCustomerFolder(j.contactId, j.address?.name).slice(0, 30); const dt = (j.date || todayISO()).split("-").reverse().join("_"); return `${j.number}_${dt}_${k}_Arbeitsbericht.pdf`.replace(/\s+/g, "_"); }
+function jFolderName(j) { return `${fileDate(j.date)}_${jobTopic(j)}`; }
+function jPdfName(j) { return `${jFolderName(j)}_Arbeitsbericht.pdf`; }
 async function jFinish() {
   const j = UI.sheet.d;
   if (!j.contactId) { toast("Bitte einen Kunden auswählen."); return; }
