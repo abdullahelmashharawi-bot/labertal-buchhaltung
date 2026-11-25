@@ -765,7 +765,7 @@ function viewStart() {
   const year = now.getFullYear(); const e = euerCalc(year);
   const bankOpen = [...S.bank.values()].filter(b => !b.link && !b.cat).length;
   const dueStr = fmtDate(`${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-10`);
-  const todos = [];
+  const todos = [...faTodos()];
   if (!filed && Math.abs(u.k83) > 0) todos.push(`<a href="#steuer" class="${now > due ? "bad" : "info"}">${ICON.tax}<div><b>Umsatzsteuer ${MONTHS[pm.getMonth()]} melden</b><div class="small muted">${u.k83 < 0 ? "Erstattung" : "Zahllast"} ${eur(Math.abs(u.k83))} · fällig ${dueStr}</div></div></a>`);
   for (const d of overdueIn) todos.push(`<a href="#" class="bad" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>${esc(salesName(d))} hat noch nicht bezahlt</b><div class="small muted">${esc(d.number)} · ${eur(openAmount(d))} · fällig seit ${fmtDate(d.dueDate)}</div></div></a>`);
   const waitingC = [...S.vouchers.values()].filter(v => v.status === "claude").length;
@@ -2334,11 +2334,35 @@ function jobTodos() {
   return out;
 }
 
+/* ===================== Zahlungen ans Finanzamt (gegen Mahnungen) ===================== */
+const FA_PAYEE = { name: "Freistaat Bayern", iban: "DE61750000000075001508", bic: "MARKDEF1750" };
+function faOpen(v) { return v.faOpen != null ? Number(v.faOpen) : r2(vGross(v) - paidSum(v)); }
+function faPayments() {
+  return [...S.vouchers.values()].filter(v => v.status === "offen" && v.kind === "ausgabe" && (["VatPrepayments", "VatPreviousYear", "IncomeTaxPrepayment"].includes(v.items?.[0]?.cat) || /finanzamt|finanzkasse/i.test(v.vendor || "")) && faOpen(v) > 0.004)
+    .sort((a, b) => (a.dueDate || a.date || "").localeCompare(b.dueDate || b.date || ""));
+}
+function faRef(v) { if (v.faRef) return v.faRef; const m = (v.number || "").match(/(\d{4})-(\d{2})$/); return `${S.company?.taxNo || ""} USt ${m ? m[2] + "/" + m[1].slice(2) : ""}`.trim(); }
+function faLabel(v) { const m = (v.number || "").match(/(\d{4})-(\d{2})$/); return v.faLabel || (m ? `Umsatzsteuer ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : vendorName(v) + " " + (v.number || "")); }
+function faTodos() {
+  const today = todayISO();
+  return faPayments().map(v => { const due = v.dueDate || v.date; const late = due < today;
+    return `<a href="#" class="${late ? "bad" : "info"}" data-act="faPay" data-id="${v.id}">${ICON.tax}<div><b>Finanzamt: ${esc(faLabel(v))} bezahlen</b><div class="small muted">${eur(faOpen(v))} · ${late ? "überfällig seit " + fmtDate(due) + " – es kommen Säumniszuschläge dazu" : "fällig " + fmtDate(due)} · antippen für QR-Code</div></div></a>`; });
+}
+function sheetFaPay() {
+  const v = S.vouchers.get(UI.sheet.id); if (!v) return ""; const amt = faOpen(v); const ref = faRef(v);
+  let qrSvg = ""; try { const qr = qrcode(0, "M"); qr.addData(String.fromCharCode(...new TextEncoder().encode(["BCD", "002", "1", "SCT", FA_PAYEE.bic, FA_PAYEE.name, FA_PAYEE.iban, "EUR" + amt.toFixed(2), "", "", ref.slice(0, 140)].join("\n")))); qr.make(); qrSvg = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } catch (e) { }
+  const row = (k, val, copy) => `<div class="pchk"><span><span class="small muted">${k}</span><br><b>${esc(val)}</b></span>${copy ? `<button class="btn sm" data-act="copyTxt" data-t="${esc(copy)}">kopieren</button>` : ""}</div>`;
+  return `<div class="sheet-head"><h2>${esc(faLabel(v))} bezahlen</h2><button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body"><div class="card" style="text-align:center">${qrSvg ? `<div style="max-width:240px;margin:0 auto;background:#fff;padding:8px;border-radius:12px">${qrSvg}</div><p class="small muted">In der N26-App „Überweisen“ → QR-Code scannen. Alles ist schon ausgefüllt.</p>` : ""}</div>
+    <div class="card"><div class="pchk-list">${row("Empfänger", FA_PAYEE.name)}${row("IBAN", FA_PAYEE.iban.replace(/(.{4})/g, "$1 ").trim(), FA_PAYEE.iban)}${row("BIC", FA_PAYEE.bic)}${row("Betrag", eur(amt), amt.toFixed(2).replace(".", ","))}${row("Verwendungszweck (genau so!)", ref, ref)}</div></div>
+    <div class="row"><button class="btn pri big" data-act="faPaid" data-id="${v.id}">Ich habe überwiesen</button></div>
+    <p class="small muted">Nach dem Tippen ist die Zahlung in der App als bezahlt markiert. Sobald der Kontoauszug da ist, gleicht Claude das noch mit der Bank ab.</p></div>`;
+}
 /* ===================== Sheet ===================== */
 function renderSheet() {
   const s = UI.sheet; const el = $("#sheet");
   if (!s) { el.classList.remove("open"); $("#sheetBg").classList.remove("open"); el.innerHTML = ""; return; }
-  el.innerHTML = s.type === "job" ? sheetJob() : s.type === "protoNew" ? sheetProtoNew() : s.type === "protocol" ? sheetProtocol() : s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
+  el.innerHTML = s.type === "fapay" ? sheetFaPay() : s.type === "job" ? sheetJob() : s.type === "protoNew" ? sheetProtoNew() : s.type === "protocol" ? sheetProtocol() : s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
   el.classList.add("open"); $("#sheetBg").classList.add("open");
   if (s.type === "protocol") pAfter(); if (s.type === "job") jAfter();
   labelTables(el);
@@ -2452,7 +2476,15 @@ document.addEventListener("click", async e => {
       case "unlinkBank": await unlinkBank(S.bank.get(id)); break;
       case "openLink": { const b = S.bank.get(id); if (b.link.col === "sales") openSaleEditor(S.sales.get(b.link.id), false); else openVoucherEditor(S.vouchers.get(b.link.id), false); break; }
       case "taxMonth": UI.taxMonth = Number(el.dataset.m); render(); break;
-      case "file": await put("ustva", el.dataset.k, { filedAt: todayISO(), k83: Number(el.dataset.v) }); toast("Als gemeldet markiert."); break;
+      case "file": { const k = el.dataset.k, k83 = Number(el.dataset.v); await put("ustva", k, { filedAt: todayISO(), k83 });
+        // Zahllast sofort als offene Zahlung ans Finanzamt anlegen – dann erinnert die Startseite, bis bezahlt ist
+        const m = k.match(/^(\d{4})-(\d{2})$/);
+        if (m && k83 > 0 && ![...S.vouchers.values()].some(v => v.number === `UStVA-${k}` && v.status !== "storniert")) { const y = Number(m[1]), mo = Number(m[2]); const due = new Date(y, mo, 10); const dueISO = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-10`; const v = blankVoucher();
+          Object.assign(v, { number: `UStVA-${k}`, date: `${k}-${String(new Date(y, mo, 0).getDate()).padStart(2, "0")}`, dueDate: dueISO < todayISO() ? todayISO() : dueISO, vendor: "Finanzamt Straubing", status: "offen", items: [{ cat: "VatPrepayments", vat: 0, gross: k83 }], note: `USt-Vorauszahlung ${MONTHS[mo - 1]} ${y}`, source: "app" }); await put("vouchers", v.id, v); toast(`Gemeldet. ${eur(k83)} bis ${fmtDate(v.dueDate)} ans Finanzamt überweisen – steht jetzt auf der Startseite.`, 7000); }
+        else toast("Als gemeldet markiert."); break; }
+      case "faPay": UI.sheet = { type: "fapay", id }; renderSheet(); break;
+      case "faPaid": { const v = S.vouchers.get(id); const amt = faOpen(v); await put("vouchers", v.id, { ...v, status: "bezahlt", paidDate: todayISO(), payMethod: "ueberweisung", payments: [...(v.payments || []), { date: todayISO(), amount: amt, note: "ans Finanzamt überwiesen" }], faOpen: 0 }); UI.sheet = null; renderSheet(); toast("Als bezahlt markiert."); break; }
+      case "copyTxt": { try { await navigator.clipboard.writeText(el.dataset.t); toast("Kopiert."); } catch (x) { toast(el.dataset.t, 6000); } break; }
       case "unfile": await del("ustva", el.dataset.k); break;
       case "copy": try { await navigator.clipboard.writeText(el.dataset.v); toast("Kopiert: " + el.dataset.v); } catch (x) { toast(el.dataset.v); } break;
       case "euerCsv": await euerCsv(); break;
