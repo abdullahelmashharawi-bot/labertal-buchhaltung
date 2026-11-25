@@ -163,6 +163,11 @@ label.f > span{font-weight:500}
 .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--chip);color:var(--muted);flex:none;overflow:hidden}
 .ic svg{width:22px;height:22px}
 .ic img{width:100%;height:100%;object-fit:cover}
+.pchk-list{display:grid;gap:2px}.pchk{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.pchk>span{flex:1;min-width:200px;font-size:14px}.pchk>div{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.pchk .btn.on.ok{background:color-mix(in srgb,var(--good) 18%,var(--panel));border-color:var(--good);color:var(--good)}.pchk .btn.on.nok{background:color-mix(in srgb,var(--bad) 14%,var(--panel));border-color:var(--bad);color:var(--bad)}.pchk .btn.on.na{background:var(--chip)}
+.plim{min-height:14px}.plim small{font-size:11.5px;font-weight:500}.pcirc{margin-top:10px}
+.pphotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}.pphoto{display:grid;gap:4px}.pphoto img{width:100%;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.psigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:10px}.psig{display:grid;gap:6px}.psig img{max-height:90px;background:#fff;border:1px solid var(--line);border-radius:8px}.sigpad{width:100%;height:120px;background:#fff;border:1px dashed var(--muted);border-radius:8px;touch-action:none}
 .ic.pic{height:58px;border-radius:8px;background:#fff;border:1px solid var(--line)}
 .ic.pic img{object-position:top}
 .ic.fuel{background:#fff1dc;color:#b46a00} .ic.mat{background:#e6efff;color:#1f63c6} .ic.tool{background:#ece8ff;color:#5b44c9}
@@ -268,8 +273,8 @@ function toast(msg, ms = 3200) { const t = $("#toast"); t.textContent = msg; t.c
 const S = { company: null, contacts: new Map(), sales: new Map(), vouchers: new Map(), bank: new Map(), assets: new Map(), ustva: new Map(), loaded: new Set(), ok: false, readOnly: false };
 const UI = { sheet: null, salesTab: "alle", vTab: "alle", bankTab: "offen", taxYear: new Date().getFullYear(), taxMonth: null, search: "" };
 let db = null, assets = null, sample = null, downloads = null;
-const COLS = ["contacts", "sales", "vouchers", "bank", "assets", "ustva", "trips"];
-S.trips = new Map(); S.gh = null; S.check = null;
+const COLS = ["contacts", "sales", "vouchers", "bank", "assets", "ustva", "trips", "protocols"];
+S.trips = new Map(); S.protocols = new Map(); S.gh = null; S.check = null;
 const SUPA_URL = "https://skhgixekbfnfctkbxjrr.supabase.co", SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNraGdpeGVrYmZuZmN0a2J4anJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNzI3MTksImV4cCI6MjExMDc0ODcxOX0.ApTigCTMhzpDCnqUwVeChNJ2Y7pbppXfxgBJCfQjvfI";
 const GH_REPO_DEFAULT = "abdullahelmashharawi-bot/labertal-belege";
 let supa = null, session = null;
@@ -591,7 +596,7 @@ const QUICK_CATS = ["Fuel", "MaterialsGoods", "SmallParts", "MotorVehicle", "Ent
 const QUICK_LABEL = { Fuel: "Tanken", MaterialsGoods: "Material", SmallParts: "Werkzeug", MotorVehicle: "Auto", EntertainmentExpenses: "Essen/Bewirtung", OfficeSupplies: "Büro", LicencesConcessions: "Software", OtherExpenditure: "Sonstiges", PrivateWithdrawal: "Privat" };
 
 /* ===================== Navigation ===================== */
-const ROUTES = [["start", "Start"], ["belege", "Belege"], ["rechnungen", "Rechnungen"], ["steuer", "Steuer"], ["fahrten", "Fahrtenbuch"], ["bank", "Bank"], ["kontakte", "Kontakte"], ["anlagen", "Anlagen"], ["einstellungen", "Einstellungen"], ["mehr", "Mehr"]];
+const ROUTES = [["start", "Start"], ["belege", "Belege"], ["rechnungen", "Rechnungen"], ["steuer", "Steuer"], ["fahrten", "Fahrtenbuch"], ["protokolle", "Prüfprotokolle"], ["bank", "Bank"], ["kontakte", "Kontakte"], ["anlagen", "Anlagen"], ["einstellungen", "Einstellungen"], ["mehr", "Mehr"]];
 function route() { const h = location.hash.replace("#", ""); return ROUTES.some(r => r[0] === h) ? h : "start"; }
 function renderNav() {
   const cur = route(); const c = S.company || {};
@@ -602,7 +607,7 @@ function renderNav() {
     <button class="btn pri side-cta" data-act="snap">${ICON.cam} Beleg fotografieren</button>` +
     ROUTES.filter(r => r[0] !== "mehr").map(([k, l]) => { let b = ""; if (k === "belege" && pruefen) b = `<span class="badge">${pruefen}</span>`; if (k === "bank" && bankOpen) b = `<span class="badge">${bankOpen}</span>`; return `<a href="#${k}" class="${k === cur ? "on" : ""}">${l}${b}</a>`; }).join("") +
     `<div class="spacer"></div><a href="#einstellungen" data-act="gobackup" class="small muted">Datensicherung</a>`;
-  const moreOn = ["mehr", "steuer", "bank", "kontakte", "anlagen", "einstellungen", "fahrten"].includes(cur);
+  const moreOn = ["mehr", "steuer", "bank", "kontakte", "anlagen", "einstellungen", "fahrten", "protokolle"].includes(cur);
   $("#tabbar").innerHTML = `<a href="#start" class="${cur === "start" ? "on" : ""}">${ICON.home}<span>Start</span></a>
     <a href="#belege" class="${cur === "belege" ? "on" : ""}">${ICON.rec}<span>Belege</span>${pruefen ? `<em class="dot">${pruefen}</em>` : ""}</a>
     <a href="#" class="fab" data-act="snap" aria-label="Beleg fotografieren"><i>${ICON.cam}</i><span>Foto</span></a>
@@ -613,7 +618,7 @@ function render() {
   if (!S.ok) return; renderNav(); queueArchive(); queueThumbs();
   const r = route(); const v = $("#view");
   if (S.ok && needsImport() && route() !== "start") { location.hash = "start"; }
-  const fn = { fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
+  const fn = { protokolle: viewProtocols, fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
   const keep = document.activeElement && v.contains(document.activeElement) && document.activeElement.matches("input,select,textarea") ? document.activeElement.id : null;
   v.innerHTML = fn();
   if (keep) { const el = document.getElementById(keep); if (el) { el.focus(); if (el.setSelectionRange && el.type === "text") { const l = el.value.length; el.setSelectionRange(l, l); } } }
@@ -704,7 +709,7 @@ function viewStart() {
   const waitingC = [...S.vouchers.values()].filter(v => v.status === "claude").length;
   if (waitingC) todos.push(`<a href="#belege" class="info" data-act="vtab" data-tab="claude">${ICON.rec}<div><b>${waitingC === 1 ? "1 Beleg wartet" : waitingC + " Belege warten"} auf Claude</b><div class="small muted">Werden beim Wochen-Check ausgelesen – oder jetzt prüfen lassen</div></div></a>`);
   if (pruefen) todos.push(`<a href="#belege" data-act="vtab" data-tab="pruefen">${ICON.rec}<div><b>${pruefen} alte Belege prüfen</b><div class="small muted">Aus Lexware, noch nicht gebucht, viele doppelt</div></div></a>`);
-  { const bt = bankTodo(); if (bt) todos.push(bt); } todos.push(...recurringTodos());
+  { const bt = bankTodo(); if (bt) todos.push(bt); } todos.push(...recurringTodos()); todos.push(...protoTodos());
   if (bankOpen) todos.push(`<a href="#bank" class="info">${ICON.bank}<div><b>${bankOpen} Kontoumsätze zuordnen</b></div></a>`);
   for (const d of quotes) todos.push(`<a href="#" class="info" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>Angebot an ${esc(salesName(d))} nachfassen</b><div class="small muted">${esc(d.number)} · ${eur(docGross(d))}</div></div></a>`);
   if (bkDays == null || bkDays > 30) todos.push(`<a href="#" data-act="fullBackup">${ICON.shield}<div><b>Datensicherung machen</b><div class="small muted">${bkDays == null ? "Noch nie gesichert" : `Letzte Sicherung vor ${bkDays} Tagen`} · alle Daten und Belegbilder als ZIP</div></div></a>`);
@@ -1281,10 +1286,11 @@ function viewMore() {
     ${it("#steuer", "tax", "Steuer", "Umsatzsteuer-Voranmeldung und EÜR")}
     ${it("#bank", "bank", "Bank", bankOpen ? bankOpen + " Umsätze offen" : "N26-Umsätze einlesen")}
     ${it("#kontakte", "user", "Kontakte", S.contacts.size + " Kunden und Lieferanten")}
+    ${it("#protokolle", "shield", "Prüfprotokolle", "Messprotokoll nach VDE als PDF")}
     ${it("#fahrten", "car", "Fahrtenbuch", "Fahrten zu Baustellen, Anfahrt in Rechnung")}
     ${it("#anlagen", "car2", "Anlagen", "Fahrzeug, Maschinen, Abschreibung")}
     ${it("#", "shield", "Claude prüfen lassen", "Belege auslesen, Fehler finden", "claudeCheck")}
-    ${canSync() ? it("#", "file", "Mit Ordner abgleichen", "Belege und Rechnungen nach Z:\\Firma", "syncFolder") : ""}
+    ${canSync() ? it("#", "file", "Mit Ordner abgleichen", "Belege, Rechnungen, Kunden, Protokolle nach Z:\\Firma", "syncFolder") : ""}
     ${it("#", "shield", "Datensicherung", "Alles als ZIP auf dein Gerät", "fullBackup")}
     ${it("#einstellungen", "gear", "Einstellungen", "Firma, Bank, Rechnungstexte")}
   </div>`;
@@ -1437,6 +1443,27 @@ async function syncFolder(pick) {
         await writeFile(dh, name, blob); list.set(name.toLowerCase(), { n: name, x: { kind: "file" } }); wrote++;
       } catch (e) { console.warn("Ablage Rechnung", d.number, e); err++; }
     }
+    // Kunden: je Kunde Angebote, Rechnungen, Protokolle – und alle Protokolle zusätzlich unter Protokolle\<Jahr>
+    ARCH.msg = "Kundenordner und Protokolle werden abgeglichen …"; render();
+    const kunden = await subDir(root, "Kunden", cache); const prot = await subDir(root, "Protokolle", cache);
+    const folderOf = (contactId, hint) => {
+      if (/sammel/i.test(cname(contactId) || "")) { const k = "name:" + unent(hint || ""); return map[k] || safeName(unent(hint || "Ohne_Kunde").replace(/^(fa\.?|firma|herr|frau)\s+/i, "")).replace(/\s+/g, "_"); }
+      let f = map[contactId]; if (!f) { f = safeName(unent(cname(contactId) || hint || "Ohne_Kunde")).replace(/\s+/g, "_"); if (contactId) { map[contactId] = f; mapChanged = true; } } return f; };
+    const put1 = async (dh, name, getBlob) => { const list = cache.get(dh) || await dirList(dh); cache.set(dh, list); if (list.has(name.normalize("NFC").toLowerCase())) { had++; return; } await writeFile(dh, name, await getBlob()); list.set(name.normalize("NFC").toLowerCase(), { n: name, x: { kind: "file" } }); wrote++; };
+    for (const d of [...S.sales.values()].filter(d => d.number && d.status !== "entwurf" && (d.kind === "rechnung" || d.kind === "angebot" || d.kind === "storno"))) {
+      try { const kd = await subDir(kunden, folderOf(d.contactId, salesName(d)), cache); const sub = await subDir(kd, d.kind === "angebot" ? "Angebote" : "Rechnungen", cache);
+        const pf = (d.files || []).filter(f => /pdf/.test(f.type || "") || /\.pdf$/i.test(f.name || "")).pop();
+        await put1(sub, `${d.kind === "angebot" ? "Angebot" : d.kind === "storno" ? "Rechnungskorrektur" : "Rechnung"}_${d.number}.pdf`, async () => pf ? await blobOf(pf) : new Blob([await buildSalePdf(d)], { type: "application/pdf" }));
+      } catch (e) { console.warn("Kundenordner", d.number, e); err++; }
+    }
+    for (const pr of [...S.protocols.values()].filter(x => x.status === "fertig" && x.pdf?.id)) {
+      try { const name = pr.pdf.name || pName(pr); const get = () => blobOf(pr.pdf);
+        await put1(await subDir(prot, (pr.date || todayISO()).slice(0, 4), cache), name, get);
+        const kd = await subDir(kunden, folderOf(pr.contactId, pr.address?.name), cache); await put1(await subDir(kd, "Protokolle", cache), name, get);
+      } catch (e) { console.warn("Protokoll", pr.number, e); err++; }
+    }
+    // leere Unterordner für jeden Kunden mit Auftrag anlegen
+    for (const cid of new Set([...S.sales.values()].filter(d => d.number && d.status !== "entwurf").map(d => d.contactId).filter(Boolean))) { try { const kd = await subDir(kunden, folderOf(cid), cache); for (const n of ["Angebote", "Rechnungen", "Protokolle"]) await subDir(kd, n, cache); } catch (e) { } }
     await saveCompany({ archive: { ...(S.company.archive || {}), ...(mapChanged ? { customers: map } : {}), lastSync: new Date().toISOString(), lastSyncRoot: root.name } });
     toast(wrote ? `${wrote} neue Dateien in deinem Ordner gespeichert${err ? `, ${err} Fehler` : ""}.` : `Alles schon da – ${had} Dateien geprüft${err ? `, ${err} Fehler` : ""}.`, 7000);
   } catch (e) { if (e?.name !== "AbortError") toast(e.message || String(e), 8000); }
@@ -1596,6 +1623,7 @@ function viewSettings() {
   <div class="grid">
   <div class="card"><h3>Firma</h3><div class="row" style="margin:10px 0">${c.logoData ? `<img src="${c.logoData}" alt="Logo" style="height:64px">` : ""}<button class="btn sm" data-act="pickLogo">Logo ändern</button></div><div class="form">
     ${f("name", "Firmenname")}${f("owner", "Inhaber")}${f("street", "Straße")}${f("zip", "PLZ")}${f("city", "Ort")}${f("phone", "Telefon")}${f("email", "E-Mail")}${f("web", "Webseite")}</div></div>
+  <div class="card"><h3>Messgerät (für Prüfprotokolle)</h3><div class="form">${f("meterName", "Messgerät")}${f("meterSn", "Seriennummer")}<label class="f"><span>Zuletzt kalibriert</span><input type="date" data-set="meterCal" value="${esc(c.meterCal || "")}"></label>${f("meterCalMonths", "Kalibrier-Intervall (Monate)")}</div><p class="small muted">Die App erinnert dich 30 Tage vor Ablauf.</p></div>
   <div class="card"><h3>Steuer &amp; Bank</h3><div class="form">${f("taxNo", "Steuernummer")}${f("taxReserveRate", "Steuer-Rücklage (% vom Gewinn)")}${f("vatId", "USt-IdNr.")}${f("bankName", "Bank")}${f("iban", "IBAN")}${f("bic", "BIC")}${f("accountHolder", "Kontoinhaber")}</div>
     <p class="small muted">Besteuerung: Ist-Versteuerung, Gewinnermittlung EÜR, monatliche Voranmeldung, Kontenrahmen SKR 04 (übernommen aus Lexware).</p></div>
   <div class="card"><h3>Rechnungen</h3><div class="form">${f("invoicePrefix", "Präfix Rechnungen")}${f("nextInvoice", "Nächste Rechnungsnummer")}${f("quotePrefix", "Präfix Angebote")}${f("nextQuote", "Nächste Angebotsnummer")}${f("paymentDays", "Zahlungsziel (Tage)")}${f("kmRate", "Fahrtkosten € pro km")}${f("terms", "Zahlungsbedingungen", 1)}${f("intro", "Einleitung Rechnung", 1)}${f("closing", "Schlusstext Rechnung", 1)}${f("quoteIntro", "Einleitung Angebot", 1)}${f("quoteClosing", "Schlusstext Angebot", 1)}</div></div>
@@ -1739,12 +1767,357 @@ async function euerCsv() {
   await saveFile(`EUER_${y}.csv`, "﻿" + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(";")).join("\r\n"), "text/csv");
 }
 
+/* ===================== Prüfprotokolle (Messprotokolle) ===================== */
+const PT = {
+  wallbox: { label: "Wallbox / Ladeeinrichtung", short: "Wallbox", norm: "DIN VDE 0100-600, DIN VDE 0100-722", reason: "neu", inst: true, wb: true },
+  stromkreis: { label: "Neuer Stromkreis / Erweiterung", short: "Stromkreis", norm: "DIN VDE 0100-600", reason: "erweiterung", inst: true },
+  verteiler: { label: "Zählerschrank / Verteiler", short: "Verteiler", norm: "DIN VDE 0100-600, VDE-AR-N 4100 (TAB)", reason: "neu", inst: true, vt: true },
+  wiederholung: { label: "Wiederholungsprüfung / E-Check", short: "Wiederholungspruefung", norm: "DIN VDE 0105-100", reason: "wiederholung", inst: true },
+  geraet: { label: "Geräteprüfung (ortsveränderlich)", short: "Geraetepruefung", norm: "DIN EN 50678 (VDE 0701) / DIN EN 50699 (VDE 0702)", reason: "geraet_wdh", inst: false },
+};
+const P_REASON = { neu: "Erstprüfung nach Errichtung (Neuanlage)", erweiterung: "Erstprüfung nach Erweiterung", aenderung: "Erstprüfung nach Änderung", wiederholung: "Wiederkehrende Prüfung", geraet_rep: "Prüfung nach Instandsetzung (VDE 0701)", geraet_wdh: "Wiederholungsprüfung (VDE 0702)" };
+const P_SICHT = [
+  ["b_betriebsmittel", "Auswahl der Betriebsmittel (Normen, Kennzeichnung, Umgebung)"],
+  ["b_basisschutz", "Basisschutz: Abdeckungen, Isolierung, keine berührbaren aktiven Teile"],
+  ["b_leitungen", "Leitungen: Typ, Querschnitt, Verlegung, Befestigung"],
+  ["b_schutzorgane", "Schutzeinrichtungen (LS, FI, Sicherungen) richtig ausgewählt"],
+  ["b_pe", "Schutzleiter, Haupterdungsschiene, Schutzpotentialausgleich"],
+  ["b_trennen", "Trenn- und Schaltgeräte vorhanden und richtig angeordnet"],
+  ["b_kennz", "Kennzeichnung der Leiter und Stromkreise, Beschriftung im Verteiler"],
+  ["b_brand", "Brandschutz, Abschottungen, Schutz gegen Wärme"],
+  ["b_ip", "Schutzart (IP) passend zum Einbauort"],
+  ["b_doku", "Pläne und Unterlagen vorhanden"],
+];
+const P_SICHT_WB = [
+  ["w_kreis", "Eigener Endstromkreis je Ladepunkt (VDE 0100-722)"],
+  ["w_rcd", "Eigener FI je Ladepunkt: Typ A + 6-mA-DC-Erkennung oder Typ B"],
+  ["w_ocpd", "Eigener Überstromschutz je Ladepunkt"],
+  ["w_ort", "Montageort: Schutz vor Beschädigung, Höhe, Zugänglichkeit"],
+  ["w_ues", "Überspannungsschutz geprüft"],
+  ["w_hersteller", "Installationsanleitung des Herstellers eingehalten"],
+];
+const P_SICHT_VT = [
+  ["v_tab", "TAB des Netzbetreibers / VDE-AR-N 4100 eingehalten"],
+  ["v_hak", "Hauptleitung, SLS / Vorsicherung, Zählerplatz in Ordnung"],
+  ["v_ues", "Überspannungsschutz (Typ 1/2) im Zählerschrank"],
+  ["v_plomb", "Plombierbarer Bereich verschlossen bzw. plombierbar"],
+];
+const P_ERPROB = [
+  ["e_rcd", "FI-Prüftaste betätigt – löst aus"],
+  ["e_funktion", "Funktion der Anlage (Schalter, Steckdosen, Verbraucher)"],
+  ["e_drehfeld", "Drehfeld rechts"],
+  ["e_schutz", "Schutz-, Melde- und Verriegelungseinrichtungen"],
+];
+const P_ERPROB_WB = [["w_laden", "Testladevorgang (Fahrzeug oder Prüfadapter) erfolgreich"], ["w_lm", "Lastmanagement / Steuerung (§ 14a EnWG) geprüft"]];
+const P_SICHT_G = [["g_gehaeuse", "Gehäuse ohne Schäden"], ["g_leitung", "Anschlussleitung, Knickschutz, Zugentlastung in Ordnung"], ["g_stecker", "Stecker / Kupplung in Ordnung"], ["g_schild", "Aufschriften / Typenschild lesbar"]];
+const P_WBSTEPS = [
+  ["nb_anmeldung", "Beim Netzbetreiber angemeldet", "Pflicht vor der Inbetriebnahme"],
+  ["nb_genehmigung", "Genehmigung des Netzbetreibers liegt vor", "nur nötig über 12 kVA (z. B. 22 kW) – vor dem Einbau"],
+  ["p14a", "Steuerbare Verbrauchseinrichtung (§ 14a EnWG) gemeldet", "bei über 4,2 kW"],
+  ["ibn_anzeige", "Inbetriebsetzung an Netzbetreiber gemeldet", ""],
+  ["hersteller", "Inbetriebnahmeprotokoll des Herstellers ausgefüllt", "für die Garantie"],
+  ["einweisung", "Kunde eingewiesen, Bedienungsanleitung übergeben", ""],
+];
+function pSicht(d) { const t = PT[d.template] || {}; if (!t.inst) return P_SICHT_G; return [...P_SICHT, ...(t.wb ? P_SICHT_WB : []), ...(t.vt ? P_SICHT_VT : [])]; }
+function pErprob(d) { const t = PT[d.template] || {}; if (!t.inst) return [["g_funktion", "Funktionsprüfung"]]; return [...P_ERPROB, ...(t.wb ? P_ERPROB_WB : [])]; }
+function blankCircuit(d, i) {
+  if (d.template === "geraet") return { no: String(i + 1), name: "", maker: "", sn: "", sk: "I", len: "", rpe: "", riso: "", ipe: "", ib: "", func: "" };
+  const wb = d.template === "wallbox";
+  return { no: wb ? "F" + (i + 1) : String(i + 1), name: wb ? "Wallbox" : "", cable: wb ? "NYM-J 5x6" : "NYM-J 3x1,5", cs: wb ? "6" : "1,5", len: "", ocpd: wb ? "B" : "B", inA: wb ? "32" : "16", rlo: "", riso: "", zs: "", rcdType: wb ? "A+DC6" : "A", idn: "30", rcdT: "", rcdIa: "", ub: "", u: "" };
+}
+function newProtocol(template, extra = {}) {
+  const c = S.company || {}; const t = PT[template];
+  const d = { id: uid(), template, status: "entwurf", date: todayISO(), reason: t.reason, norm: t.norm, contactId: "", address: {}, site: "", saleId: "",
+    net: { form: "TN-C-S", u0: "230", ull: "400", ra: "" }, meter: { name: c.meterName || "Fluke 1664 FC", sn: c.meterSn || "", cal: c.meterCal || "" },
+    inspector: c.owner || "", checks: {}, circuits: [], wb: t.wb ? { maker: "", model: "", sn: "", kw: "11", phases: "3", rcdIntern: "ja", connector: "Typ 2" } : null, steps: {},
+    res: { ok: "", defects: "", next: "", notes: "" }, sign: {}, photos: [], createdAt: new Date().toISOString(), ...extra };
+  d.circuits.push(blankCircuit(d, 0));
+  return d;
+}
+const pnum = v => { const n = parseNum(v); return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : null; };
+/* Grenzwerte: gibt je Messwert {st:"ok|warn|bad", t:"Hinweis"} */
+function pLimits(d, c) {
+  const L = {}; const set = (k, st, t) => L[k] = { st, t };
+  if (d.template === "geraet") {
+    const rpe = pnum(c.rpe), len = pnum(c.len) || 5; const max = Math.min(1, 0.3 + Math.max(0, Math.ceil((len - 5) / 7.5)) * 0.1);
+    if (c.sk === "I" && rpe != null) set("rpe", rpe <= max ? "ok" : "bad", `max. ${fmtNum(max)} Ω`);
+    const ri = pnum(c.riso); const rmin = c.sk === "II" ? 2 : 1; if (ri != null) set("riso", ri >= rmin ? "ok" : "bad", `min. ${fmtNum(rmin, 1)} MΩ`);
+    const ipe = pnum(c.ipe); if (c.sk === "I" && ipe != null) set("ipe", ipe <= 3.5 ? "ok" : "bad", "max. 3,5 mA");
+    const ib = pnum(c.ib); if (ib != null) set("ib", ib <= 0.5 ? "ok" : "bad", "max. 0,5 mA");
+    return L;
+  }
+  const riso = pnum(c.riso); if (riso != null) set("riso", riso >= 1 ? "ok" : "bad", "min. 1,0 MΩ bei 500 V");
+  const rlo = pnum(c.rlo), len = pnum(c.len), cs = pnum(c.cs);
+  if (rlo != null) { const exp = len && cs ? 0.0178 * len / cs : null; const lim = exp != null ? Math.max(0.3, exp * 1.5 + 0.1) : 1; set("rlo", rlo <= lim ? "ok" : "warn", exp != null ? `erwartet ca. ${fmtNum(exp)} Ω` : "Erfahrungswert bis 1 Ω"); }
+  const zs = pnum(c.zs), inA = pnum(c.inA), u0 = pnum(d.net?.u0) || 230; const k = { B: 5, C: 10, D: 20 }[c.ocpd];
+  const tt = d.net?.form === "TT" && c.rcdType;
+  if (zs != null) {
+    if (tt) set("zs", "ok", "TT: Abschaltung über FI");
+    else if (k && inA) { const zmax = u0 / (k * inA); set("zs", zs > zmax ? "bad" : zs > zmax * 2 / 3 ? "warn" : "ok", `max. ${fmtNum(zmax)} Ω (${c.ocpd}${fmtNum(inA, 0)}), Reserve 2/3: ${fmtNum(zmax * 2 / 3)} Ω`); }
+    else set("zs", "warn", "Abschaltbedingung selbst bewerten (Schmelzsicherung)");
+  }
+  if (c.rcdType) {
+    const idn = pnum(c.idn) || 30; const s = /S/i.test(c.rcdType); const t = pnum(c.rcdT);
+    if (t != null) set("rcdT", s ? (t >= 130 && t <= 500 ? "ok" : "bad") : (t <= 300 ? "ok" : "bad"), s ? "130–500 ms (selektiv)" : "max. 300 ms bei IΔn");
+    const ia = pnum(c.rcdIa); if (ia != null) set("rcdIa", ia < 0.5 * idn ? "warn" : ia <= idn ? "ok" : ia <= 1.4 * idn ? "warn" : "bad", `${fmtNum(0.5 * idn, 0)}–${fmtNum(idn, 0)} mA (Pulsstrom bis ${fmtNum(1.4 * idn, 0)} mA)`);
+    const ub = pnum(c.ub); if (ub != null) set("ub", ub <= 50 ? "ok" : "bad", "max. 50 V");
+  }
+  const u = pnum(c.u); if (u != null) { const lo = u > 300 ? 360 : 207, hi = u > 300 ? 440 : 253; set("u", u >= lo && u <= hi ? "ok" : "warn", `${lo}–${hi} V`); }
+  return L;
+}
+function pIk(d, c) { const zs = pnum(c.zs); return zs ? (pnum(d.net?.u0) || 230) / zs : null; }
+function pRaCheck(d) { if (d.net?.form !== "TT") return null; const ra = pnum(d.net.ra); if (ra == null) return null; const idn = Math.max(...d.circuits.map(c => pnum(c.idn) || 30)); const max = 50 / (idn / 1000); return { st: ra <= max ? "ok" : "bad", t: `RA · IΔn ≤ 50 V → max. ${fmtNum(max, 0)} Ω` }; }
+function pProblems(d) {
+  const out = []; d.circuits.forEach(c => { const L = pLimits(d, c); for (const [k, v] of Object.entries(L)) if (v.st === "bad") out.push(`${c.no || ""} ${c.name || ""}: ${P_FIELD[k] || k} außerhalb (${v.t})`.trim()); });
+  const ra = pRaCheck(d); if (ra?.st === "bad") out.push("Erdungswiderstand RA zu hoch (" + ra.t + ")");
+  for (const [k, l] of [...pSicht(d), ...pErprob(d)]) if (d.checks?.[k] === "nok") out.push("Nicht in Ordnung: " + l);
+  return out;
+}
+const P_FIELD = { rlo: "RLO", riso: "Riso", zs: "Zs", rcdT: "Auslösezeit", rcdIa: "Auslösestrom", ub: "Berührungsspannung", u: "Spannung", rpe: "RPE", ipe: "Schutzleiterstrom", ib: "Berührungsstrom" };
+function pName(d) { const t = PT[d.template] || {}; const k = pCustomerFolder(d.contactId, d.address?.name).slice(0, 30); const dt = (d.date || todayISO()).split("-").reverse().join("_"); return `${d.number || "Entwurf"}_${dt}_${k}_${t.short || "Protokoll"}.pdf`.replace(/\s+/g, "_"); }
+function pCustomerFolder(contactId, nameHint) { const map = S.company?.archive?.customers || {}; if (/sammel/i.test(cname(contactId) || "")) return map["name:" + unent(nameHint || "")] || safeName(unent(nameHint || "Kunde").replace(/^(fa\.?|firma|herr|frau)\s+/i, "")).replace(/\s+/g, "_"); return map[contactId] || safeName(unent(cname(contactId) || nameHint || "Kunde")).replace(/\s+/g, "_"); }
+
+/* ---- Liste ---- */
+function viewProtocols() {
+  const list = [...S.protocols.values()].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return `<div class="head"><h1>Prüfprotokolle</h1><button class="btn pri" data-act="newProto">+ Protokoll</button></div>
+  <div class="list">${list.map(d => { const prob = pProblems(d).length; const t = PT[d.template] || {};
+    return `<a class="li" href="#" data-act="openProto" data-id="${d.id}"><span class="ic tool">${ICON.shield}</span><div><div class="t">${esc(unent(d.address?.name || cname(d.contactId) || "Ohne Kunde"))} · ${esc(t.label || "")}</div><div class="s">${fmtDate(d.date)}${d.number ? " · " + esc(d.number) : ""}${d.site ? " · " + esc(d.site) : ""}</div></div>
+    <div class="a">${d.status === "fertig" ? '<span class="chip good">fertig</span>' : '<span class="chip">Entwurf</span>'}${prob ? `<br><span class="chip" style="color:var(--bad)">${prob} Mängel</span>` : ""}${d.claudeRead ? '<br><span class="chip info">Claude liest ab</span>' : ""}</div></a>`; }).join("") || '<div class="empty">Noch keine Protokolle. Tippe auf „+ Protokoll“.</div>'}</div>
+  <p class="small muted">Fertige Protokolle werden als PDF gespeichert und beim Ordner-Abgleich nach Z:\\Firma\\Protokolle und Z:\\Firma\\Kunden\\&lt;Kunde&gt;\\Protokolle gelegt.</p>`;
+}
+function sheetProtoNew() {
+  return `<div class="sheet-head"><h2>Neues Prüfprotokoll</h2><button class="btn" data-act="closeSheet">Abbrechen</button></div>
+  <div class="sheet-body"><div class="card"><p>Was hast du gemacht?</p><div class="morelist">${Object.entries(PT).map(([k, t]) => `<a href="#" data-act="protoTpl" data-k="${k}"><span class="ic">${ICON.shield}</span><div><b>${t.label}</b><span>${esc(t.norm)}</span></div></a>`).join("")}</div></div></div>`;
+}
+
+/* ---- Editor ---- */
+const pv = (o, k) => esc(o?.[k] ?? "");
+function pIn(path, val, label, o = {}) { return `<label class="f${o.wide ? " wide" : ""}"><span>${label}</span><input data-pp="${path}" value="${esc(val ?? "")}" ${o.num ? 'inputmode="decimal"' : ""} ${o.type ? `type="${o.type}"` : ""} ${o.ph ? `placeholder="${esc(o.ph)}"` : ""} ${o.ro ? "disabled" : ""}></label>`; }
+function pSel(path, val, label, opts, o = {}) { return `<label class="f${o.wide ? " wide" : ""}"><span>${label}</span><select data-pp="${path}" ${o.ro ? "disabled" : ""}>${opts.map(x => { const [v, l] = Array.isArray(x) ? x : [x, x]; return `<option value="${esc(v)}" ${String(val ?? "") === String(v) ? "selected" : ""}>${esc(l)}</option>`; }).join("")}</select></label>`; }
+function pChecks(d, list, ro) {
+  return `<div class="pchk-list">${list.map(([k, l]) => { const v = d.checks?.[k] || ""; const b = (val, t) => `<button class="btn sm ${v === val ? "on " + val : ""}" data-act="pChk" data-k="${k}" data-v="${val}" ${ro ? "disabled" : ""}>${t}</button>`;
+    return `<div class="pchk"><span>${esc(l)}</span><div>${b("ok", "i. O.")}${b("nok", "nicht i. O.")}${b("na", "entfällt")}</div></div>`; }).join("")}
+    ${ro ? "" : `<div class="row" style="margin-top:6px"><button class="btn sm" data-act="pAllOk" data-g="${list[0]?.[0]?.split("_")[0] || ""}" data-keys="${list.map(x => x[0]).join(",")}">Alle offenen auf „i. O.“</button></div>`}</div>`;
+}
+function pLimBadge(L, k) { const x = L[k]; if (!x) return ""; const col = x.st === "ok" ? "var(--good)" : x.st === "warn" ? "#b46a00" : "var(--bad)"; return `<small style="color:${col}">${x.st === "ok" ? "✓" : x.st === "warn" ? "⚠" : "✗"} ${esc(x.t)}</small>`; }
+function pCircuitHtml(d, c, i, ro) {
+  const L = pLimits(d, c); const f = (k, label, o = {}) => `<label class="f"><span>${label}</span><input data-pp="circuits.${i}.${k}" value="${esc(c[k] ?? "")}" ${o.num ? 'inputmode="decimal"' : ""} ${o.ph ? `placeholder="${esc(o.ph)}"` : ""} ${ro ? "disabled" : ""}><span class="plim" id="pl-${i}-${k}">${pLimBadge(L, k)}</span></label>`;
+  const s = (k, label, opts) => pSel(`circuits.${i}.${k}`, c[k], label, opts, { ro });
+  if (d.template === "geraet") return `<div class="card pcirc"><div class="row" style="justify-content:space-between"><h3>Gerät ${esc(c.no)}</h3>${ro ? "" : `<button class="btn sm" data-act="pDelC" data-i="${i}">entfernen</button>`}</div><div class="form">
+    ${f("name", "Gerät", { ph: "z. B. Bohrhammer" })}${f("maker", "Hersteller / Typ")}${f("sn", "Seriennr. / Inventarnr.")}${s("sk", "Schutzklasse", [["I", "I (mit Schutzleiter)"], ["II", "II (schutzisoliert)"], ["III", "III (Kleinspannung)"]])}${f("len", "Leitungslänge m", { num: 1 })}
+    ${f("rpe", "RPE Schutzleiter Ω", { num: 1 })}${f("riso", "Riso MΩ", { num: 1 })}${f("ipe", "Schutzleiter-/Ersatzableitstrom mA", { num: 1 })}${f("ib", "Berührungsstrom mA", { num: 1 })}${s("func", "Funktion", [["", "–"], ["ok", "in Ordnung"], ["nok", "nicht in Ordnung"]])}</div></div>`;
+  const ik = pIk(d, c);
+  return `<div class="card pcirc"><div class="row" style="justify-content:space-between"><h3>Stromkreis ${esc(c.no)} ${esc(c.name || "")}</h3><div class="row">${ro ? "" : `<label class="btn sm">${ICON.cam} Foto Messgerät<input type="file" accept="image/*" capture="environment" hidden data-pphoto="${i}"></label><button class="btn sm" data-act="pDelC" data-i="${i}">entfernen</button>`}</div></div>
+    <div class="form">${f("no", "Nr. (z. B. F3)")}${f("name", "Bezeichnung", { ph: "z. B. Wallbox Garage" })}${f("cable", "Leitung", { ph: "NYM-J 5x6" })}${f("cs", "Querschnitt mm²", { num: 1 })}${f("len", "Länge m", { num: 1 })}
+    ${s("ocpd", "Schutzorgan", [["B", "LS B"], ["C", "LS C"], ["D", "LS D"], ["gG", "Schmelzsicherung gG"]])}${f("inA", "Nennstrom A", { num: 1 })}</div>
+    <h4 style="margin:12px 0 4px">Messwerte</h4><div class="form">${f("rlo", "RLO Schutzleiter Ω", { num: 1 })}${f("riso", "Riso MΩ (500 V)", { num: 1 })}${f("zs", "Zs Schleifenimpedanz Ω", { num: 1 })}
+    <label class="f"><span>Ik (berechnet)</span><input value="${ik ? fmtNum(ik, 0) + " A" : ""}" disabled id="pik-${i}"></label>
+    ${s("rcdType", "FI-Typ", [["", "kein FI"], ["A", "Typ A"], ["A+DC6", "Typ A + DC 6 mA (Wallbox)"], ["B", "Typ B"], ["F", "Typ F"], ["AC", "Typ AC"], ["A S", "Typ A selektiv (S)"], ["B S", "Typ B selektiv (S)"]])}${f("idn", "IΔn mA", { num: 1 })}${f("rcdT", "Auslösezeit ms", { num: 1 })}${f("rcdIa", "Auslösestrom mA", { num: 1 })}${f("ub", "Berührungsspannung UB V", { num: 1 })}${f("u", "Spannung V", { num: 1 })}</div></div>`;
+}
+function sheetProtocol() {
+  const s = UI.sheet; const d = s.d; const t = PT[d.template] || {}; const ro = d.status === "fertig"; const c = S.company || {};
+  const sales = [...S.sales.values()].filter(x => d.contactId && x.contactId === d.contactId).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const prob = pProblems(d); const ra = pRaCheck(d);
+  const photos = (d.photos || []).map((p, i) => `<div class="pphoto"><img src="_blob/${esc(p.id)}" alt="" loading="lazy"><input data-pp="photos.${i}.cap" value="${esc(p.cap || "")}" placeholder="Beschreibung" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="btn sm" data-act="pDelPhoto" data-i="${i}">×</button>`}</div>`).join("");
+  const sig = (k, label) => `<div class="psig"><div class="small muted">${label}</div>${d.sign?.[k] ? `<img src="${d.sign[k]}" alt="Unterschrift">${ro ? "" : `<button class="btn sm" data-act="pSigClear" data-k="${k}">neu unterschreiben</button>`}` : ro ? "<i class='small muted'>keine</i>" : `<canvas class="sigpad" data-sig="${k}" width="600" height="180"></canvas><button class="btn sm" data-act="pSigClear" data-k="${k}">löschen</button>`}</div>`;
+  return `<div class="sheet-head"><h2>${esc(t.label || "Prüfprotokoll")}${d.number ? " " + esc(d.number) : ""}</h2>
+    ${ro ? `<button class="btn pri" data-act="pShare">Teilen / PDF</button>${d.saleId ? `<button class="btn" data-act="pShareSale">mit Rechnung teilen</button>` : ""}<button class="btn" data-act="pReopen">Bearbeiten</button>` : `<button class="btn" data-act="pSave">Speichern</button><button class="btn pri" data-act="pFinish">Fertig – PDF erstellen</button>`}
+    <button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body">
+    ${prob.length ? `<div class="card note bad"><b>${prob.length === 1 ? "1 Punkt" : prob.length + " Punkte"} nicht in Ordnung:</b><ul class="small">${prob.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    <div class="card"><h3>Auftrag</h3><div class="form">
+      <label class="f"><span>Kunde</span><select data-pp="contactId" ${ro ? "disabled" : ""}>${contactOptions(d.contactId, "isCustomer").replace('<option value="__new">+ Neuer Kontakt …</option>', "")}</select></label>
+      ${pIn("site", d.site, "Anlagenort (falls anders als Kundenadresse)", { ph: "z. B. Garage, Hauptstr. 5", ro })}
+      ${pIn("date", d.date, "Prüfdatum", { type: "date", ro })}
+      ${pSel("reason", d.reason, "Anlass", Object.entries(P_REASON).filter(([k]) => t.inst ? !k.startsWith("geraet") : k.startsWith("geraet")), { ro })}
+      ${pIn("norm", d.norm, "Prüfgrundlage", { ro })}
+      ${pSel("saleId", d.saleId, "Gehört zu Rechnung / Angebot", [["", "–"], ...sales.map(x => [x.id, `${x.kind === "angebot" ? "Angebot" : "Rechnung"} ${x.number || "Entwurf"} · ${fmtDate(x.date)}`])], { ro })}
+      ${pIn("inspector", d.inspector, "Prüfer (Elektrofachkraft)", { ro })}
+    </div></div>
+    ${t.inst ? `<div class="card"><h3>Netz und Messgerät</h3><div class="form">
+      ${pSel("net.form", d.net?.form, "Netzform", ["TN-C-S", "TN-S", "TN-C", "TT", "IT"], { ro })}${pIn("net.u0", d.net?.u0, "Spannung L-N V", { num: 1, ro })}${pIn("net.ull", d.net?.ull, "Spannung L-L V", { num: 1, ro })}
+      ${d.net?.form === "TT" ? `<label class="f"><span>Erdungswiderstand RA Ω</span><input data-pp="net.ra" value="${esc(d.net.ra || "")}" inputmode="decimal" ${ro ? "disabled" : ""}><span class="plim" id="pl-ra">${ra ? pLimBadge({ ra }, "ra") : ""}</span></label>` : ""}
+      ${pIn("meter.name", d.meter?.name, "Messgerät", { ro })}${pIn("meter.sn", d.meter?.sn, "Seriennummer", { ro })}${pIn("meter.cal", d.meter?.cal, "Kalibriert am", { type: "date", ro })}
+    </div></div>` : `<div class="card"><h3>Messgerät</h3><div class="form">${pIn("meter.name", d.meter?.name, "Messgerät", { ro })}${pIn("meter.sn", d.meter?.sn, "Seriennummer", { ro })}${pIn("meter.cal", d.meter?.cal, "Kalibriert am", { type: "date", ro })}</div></div>`}
+    ${t.wb ? `<div class="card"><h3>Wallbox</h3><div class="form">${pIn("wb.maker", d.wb?.maker, "Hersteller", { ro })}${pIn("wb.model", d.wb?.model, "Modell", { ro })}${pIn("wb.sn", d.wb?.sn, "Seriennummer", { ro })}
+      ${pSel("wb.kw", d.wb?.kw, "Ladeleistung", [["3.7", "3,7 kW"], ["7.4", "7,4 kW"], ["11", "11 kW"], ["22", "22 kW"]], { ro })}${pSel("wb.phases", d.wb?.phases, "Phasen", [["1", "1-phasig"], ["3", "3-phasig"]], { ro })}
+      ${pSel("wb.rcdIntern", d.wb?.rcdIntern, "6-mA-DC-Erkennung in der Wallbox", ["ja", "nein"], { ro })}${pIn("wb.connector", d.wb?.connector, "Anschluss", { ph: "Typ 2 Kabel / Steckdose", ro })}</div></div>` : ""}
+    <div class="card"><h3>Besichtigen</h3>${pChecks(d, pSicht(d), ro)}</div>
+    <div class="card"><h3>Erproben</h3>${pChecks(d, pErprob(d), ro)}</div>
+    <div class="row" style="justify-content:space-between;margin:14px 0 4px"><h3>${t.inst ? "Messen – je Stromkreis" : "Geräte"}</h3>${ro ? "" : `<button class="btn sm" data-act="pAddC">+ ${t.inst ? "Stromkreis" : "Gerät"}</button>`}</div>
+    ${d.claudeRead ? `<div class="card note small">Fotos vom Messgerät liegen bei Claude – die Werte werden beim nächsten Check eingetragen (oder sag Claude „Protokoll auslesen“).</div>` : ""}
+    ${d.circuits.map((c, i) => pCircuitHtml(d, c, i, ro)).join("")}
+    ${t.wb ? `<div class="card"><h3>Netzbetreiber und Übergabe</h3><div class="pchk-list">${P_WBSTEPS.map(([k, l, h]) => `<div class="pchk"><span>${esc(l)}${h ? `<br><small class="muted">${esc(h)}</small>` : ""}</span><div>${d.steps?.[k] === "na" ? `<span class="chip">entfällt</span><button class="btn sm" data-act="pStepNa" data-k="${k}">rückgängig</button>` : `<input type="date" data-pp="steps.${k}" value="${esc(d.steps?.[k] || "")}"><button class="btn sm" data-act="pStepNa" data-k="${k}">entfällt</button>`}</div></div>`).join("")}</div><p class="small muted">Diese Punkte kannst du auch nach „Fertig“ noch eintragen.</p></div>` : ""}
+    <div class="card"><h3>Fotos</h3><div class="pphotos">${photos}</div>${ro ? "" : `<label class="btn sm">${ICON.cam} Foto hinzufügen<input type="file" accept="image/*" multiple hidden data-pphoto="x"></label>`}<p class="small muted">z. B. Typenschild, Seriennummer, fertiger Verteiler. Kommt als Anhang ins PDF.</p></div>
+    <div class="card"><h3>Ergebnis</h3><div class="form">
+      ${pSel("res.ok", d.res?.ok, "Bewertung", [["", "– bitte wählen –"], ["ja", "Keine Mängel – Anlage entspricht DIN VDE"], ["maengel", "Mängel festgestellt"]], { ro, wide: 1 })}
+      <label class="f wide"><span>Mängel / Bemerkungen</span><textarea data-pp="res.defects" rows="3" ${ro ? "disabled" : ""}>${esc(d.res?.defects || "")}</textarea></label>
+      ${pIn("res.next", d.res?.next, "Nächste Prüfung empfohlen", { type: "date", ro })}
+    </div>${prob.length && d.res?.ok === "ja" ? `<p class="note bad small">Achtung: Es sind Werte außerhalb der Grenzwerte eingetragen, trotzdem „keine Mängel“ gewählt.</p>` : ""}</div>
+    <div class="card"><h3>Unterschriften</h3><div class="psigs">${sig("p", "Prüfer: " + esc(d.inspector || c.owner || ""))}${sig("k", "Kunde / Auftraggeber")}</div>
+      ${pIn("sign.kName", d.sign?.kName, "Name Kunde (Druckbuchstaben)", { ro })}</div>
+    ${!ro && !s.isNew ? `<div class="row"><button class="btn danger" data-act="pDelete">Protokoll löschen</button></div>` : ""}
+  </div>`;
+}
+function pGet(o, path) { return path.split(".").reduce((a, k) => a?.[k], o); }
+function pSet(o, path, val) { const ks = path.split("."); let x = o; for (let i = 0; i < ks.length - 1; i++) { if (x[ks[i]] == null) x[ks[i]] = {}; x = x[ks[i]]; } x[ks.at(-1)] = val; }
+function pRerender() { const b = $("#sheet .sheet-body"); const st = b ? b.scrollTop : 0; renderSheet(); const nb = $("#sheet .sheet-body"); if (nb) nb.scrollTop = st; }
+function pAfter() {
+  for (const cv of $$("canvas.sigpad")) {
+    const ctx = cv.getContext("2d"); ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.strokeStyle = "#111"; let draw = false, used = false;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+    cv.onpointerdown = e => { draw = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); e.preventDefault(); };
+    cv.onpointermove = e => { if (!draw) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); used = true; e.preventDefault(); };
+    cv.onpointerup = () => { draw = false; if (used) { UI.sheet.d.sign = { ...(UI.sheet.d.sign || {}), [cv.dataset.sig]: cv.toDataURL("image/png") }; } };
+  }
+}
+function pLiveUpdate(path) {
+  const d = UI.sheet.d; const m = path.match(/^circuits\.(\d+)\./);
+  if (m) { const i = Number(m[1]); const c = d.circuits[i]; const L = pLimits(d, c); for (const k of Object.keys(P_FIELD)) { const el = $(`#pl-${i}-${k}`); if (el) el.innerHTML = pLimBadge(L, k); } const ik = $(`#pik-${i}`); if (ik) { const v = pIk(d, c); ik.value = v ? fmtNum(v, 0) + " A" : ""; } }
+  if (path === "net.ra") { const el = $("#pl-ra"); if (el) { const ra = pRaCheck(d); el.innerHTML = ra ? pLimBadge({ ra }, "ra") : ""; } }
+}
+function pNextNo(year) { let max = 0; for (const p of S.protocols.values()) if (p.number?.startsWith(year + "-")) max = Math.max(max, Number(p.number.slice(5)) || 0); return `${year}-${String(max + 1).padStart(3, "0")}`; }
+async function pSaveDoc(d) { d.updatedAt = new Date().toISOString(); await put("protocols", d.id, d); }
+async function pFinish() {
+  const d = UI.sheet.d;
+  if (!d.contactId && !d.address?.name) { toast("Bitte einen Kunden auswählen."); return; }
+  if (!d.res?.ok) { toast("Bitte unten beim Ergebnis die Bewertung wählen."); return; }
+  if (!d.sign?.p) { toast("Bitte als Prüfer unterschreiben."); return; }
+  if (!d.number) d.number = pNextNo((d.date || todayISO()).slice(0, 4));
+  if (!d.res.next) d.res.next = addDays(d.date || todayISO(), 4 * 365);
+  toast("PDF wird erstellt …", 8000);
+  const bytes = await buildProtocolPdf(d); const name = pName(d);
+  const up = await assets.upload(new File([bytes], name, { type: "application/pdf" }));
+  d.pdf = { id: up.id, name, at: new Date().toISOString() }; d.status = "fertig"; d.archiveName = name;
+  await pSaveDoc(d); UI.sheet.d = JSON.parse(JSON.stringify(d)); pRerender(); toast("Protokoll fertig und gespeichert.");
+}
+async function pShare(withSale) {
+  const d = UI.sheet.d; if (!d.pdf) return;
+  const files = [new File([await blobOf(d.pdf)], d.pdf.name, { type: "application/pdf" })];
+  if (withSale && d.saleId) { const s = S.sales.get(d.saleId); if (s) { const pf = (s.files || []).filter(f => /pdf/.test(f.type || "") || /\.pdf$/i.test(f.name || "")).pop(); const b = pf ? await blobOf(pf) : new Blob([await buildSalePdf(s)], { type: "application/pdf" }); files.push(new File([b], `${s.kind === "angebot" ? "Angebot" : "Rechnung"}_${s.number || "Entwurf"}.pdf`, { type: "application/pdf" })); } }
+  if (navigator.canShare && navigator.canShare({ files })) { try { await navigator.share({ files, title: "Prüfprotokoll " + d.number }); return; } catch (e) { if (e?.name === "AbortError") return; } }
+  for (const f of files) await saveFile(f.name, f, "application/pdf");
+}
+
+/* ---- PDF ---- */
+async function buildProtocolPdf(d) {
+  const { PDFDocument, StandardFonts, rgb } = PDFLib; const c = S.company || {}; const t = PT[d.template] || {};
+  const pdf = await PDFDocument.create(); const F = await pdf.embedFont(StandardFonts.Helvetica); const B = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const W = 595.28, H = 841.89, L = 46, R = W - 46; const ink = rgb(0.1, 0.12, 0.16), grey = rgb(0.42, 0.45, 0.5), line = rgb(0.78, 0.8, 0.83), fill = rgb(0.95, 0.96, 0.97);
+  const good = rgb(0.12, 0.54, 0.3), bad = rgb(0.76, 0.18, 0.16), warn = rgb(0.7, 0.42, 0);
+  let page, y;
+  const pm = s => String(s ?? "").replace(/MΩ/g, "MOhm").replace(/Ω/g, "Ohm").replace(/IΔn/g, "IdN").replace(/IΔ/g, "Id").replace(/≤/g, "<=").replace(/≥/g, ">=");
+  const txt = (s, x, yy, o = {}) => { const f = o.bold ? B : F, sz = o.size || 8.5; s = pdfSafe(pm(s)); let xx = x; if (o.align === "right") xx = x - f.widthOfTextAtSize(s, sz); if (o.align === "center") xx = x - f.widthOfTextAtSize(s, sz) / 2; page.drawText(s, { x: xx, y: yy, size: sz, font: f, color: o.color || ink }); };
+  const fit = (s, f, sz, w) => { s = pdfSafe(pm(s)); while (s && f.widthOfTextAtSize(s, sz) > w) s = s.slice(0, -1); return s; };
+  let logo = null; if (c.logoData) { try { const by = Uint8Array.from(atob(c.logoData.split(",")[1]), ch => ch.charCodeAt(0)); logo = by[0] === 0x89 ? await pdf.embedPng(by) : await pdf.embedJpg(by); } catch (e) { } }
+  const newPage = () => {
+    page = pdf.addPage([W, H]);
+    if (logo) { const s = 42 / logo.height; page.drawImage(logo, { x: R - logo.width * s, y: H - 34 - 42, width: logo.width * s, height: 42 }); }
+    txt(c.name || "", L, H - 44, { bold: true, size: 10 }); txt([c.street, `${c.zip || ""} ${c.city || ""}`, c.phone ? "Tel. " + c.phone : ""].filter(Boolean).join(" · "), L, H - 56, { size: 7.5, color: grey });
+    page.drawLine({ start: { x: L, y: H - 84 }, end: { x: R, y: H - 84 }, thickness: 0.6, color: line });
+    txt(`Prüfprotokoll ${d.number || "ENTWURF"} · ${fmtDate(d.date)}`, L, 26, { size: 7, color: grey });
+    y = H - 104;
+  };
+  const need = h => { if (y - h < 50) newPage(); };
+  const h2 = s => { need(30); y -= 6; page.drawRectangle({ x: L, y: y - 4, width: R - L, height: 15, color: fill }); txt(s, L + 5, y, { bold: true, size: 9.5 }); y -= 17; };
+  const nv = v => (pnum(v) != null ? String(v).trim().replace(".", ",") : String(v ?? ""));
+  const kv1 = pairs => { for (const [k, v] of pairs) { const lines = wrap(pm(v || "–"), F, 8.5, R - L - 100); need(12 * lines.length); txt(k, L, y, { size: 7.5, color: grey }); lines.forEach((ln, i) => txt(ln, L + 100, y - i * 11)); y -= 11 * lines.length + 1; } };
+  const kv = (pairs, cols = 2) => { const cw = (R - L) / cols; for (let i = 0; i < pairs.length; i += cols) { need(13); for (let j = 0; j < cols; j++) { const p = pairs[i + j]; if (!p) continue; txt(p[0], L + j * cw, y, { size: 7.5, color: grey }); txt(fit(p[1] || "–", F, 8.5, cw - (j ? 100 : 105)), L + j * cw + 100, y); } y -= 12; } };
+  newPage();
+  txt("Prüfprotokoll", L, y, { bold: true, size: 17 }); y -= 16;
+  txt(d.template === "geraet" ? "Prüfung elektrischer Geräte" : t.wb ? "Prüfung elektrischer Anlagen – Ladeeinrichtung für Elektrofahrzeuge" : "Prüfung elektrischer Anlagen", L, y, { size: 10 }); y -= 12;
+  txt("nach " + (d.norm || t.norm || ""), L, y, { size: 8.5, color: grey }); y -= 14;
+  const a = d.address || {}; const cust = [unent(a.name || cname(d.contactId)), a.street, `${a.zip || ""} ${a.city || ""}`.trim()].filter(Boolean).join(", ");
+  h2("Allgemeine Angaben");
+  kv1([["Auftraggeber", cust], ["Anlagenort", d.site || cust], ["Auftragnehmer", [c.name, c.street, `${c.zip || ""} ${c.city || ""}`.trim()].filter(Boolean).join(", ")], ["Anlass der Prüfung", P_REASON[d.reason] || ""], ["Prüfgrundlage", d.norm || t.norm || ""]]);
+  kv([["Prüfer (EFK)", d.inspector || c.owner || ""], ["Prüfdatum", fmtDate(d.date)],
+    ["Messgerät", [d.meter?.name, d.meter?.sn ? "SN " + d.meter.sn : ""].filter(Boolean).join(", ")], ["Kalibriert am", d.meter?.cal ? fmtDate(d.meter.cal) : "–"],
+    ...(t.inst ? [["Netzform", d.net?.form || ""], ["Nennspannung", `${d.net?.u0 || 230} / ${d.net?.ull || 400} V`]] : []),
+    ...(d.net?.form === "TT" && d.net?.ra ? [["Erdungswiderstand RA", fmtNum(pnum(d.net.ra)) + " Ω"]] : []),
+    ...(d.saleId && S.sales.get(d.saleId)?.number ? [["Bezug", `${S.sales.get(d.saleId).kind === "angebot" ? "Angebot" : "Rechnung"} ${S.sales.get(d.saleId).number}`]] : [])]);
+  if (t.wb && d.wb) { h2("Ladeeinrichtung"); kv([["Hersteller / Modell", [d.wb.maker, d.wb.model].filter(Boolean).join(" ")], ["Seriennummer", d.wb.sn], ["Ladeleistung", `${String(d.wb.kw || "").replace(".", ",")} kW, ${d.wb.phases === "1" ? "1-phasig" : "3-phasig"}`], ["Anschluss", d.wb.connector], ["DC-Erkennung 6 mA", d.wb.rcdIntern === "ja" ? "in der Wallbox" : "nein (FI Typ B nötig)"]]); }
+  const chkTable = (title, list) => {
+    h2(title); const X3 = R - 40, X2 = R - 95, X1 = R - 150; need(12); txt("i. O.", X1, y, { size: 7, bold: true, align: "center" }); txt("nicht i. O.", X2, y, { size: 7, bold: true, align: "center" }); txt("entfällt", X3, y, { size: 7, bold: true, align: "center" }); y -= 11;
+    for (const [k, l] of list) { need(12); const v = d.checks?.[k]; txt(fit(l, F, 8, X1 - L - 30), L + 4, y, { size: 8 });
+      const mark = (x, on, col) => { page.drawRectangle({ x: x - 4, y: y - 1, width: 8, height: 8, borderColor: grey, borderWidth: 0.6 }); if (on) { page.drawLine({ start: { x: x - 3, y: y + 3 }, end: { x: x - 1, y: y }, thickness: 1.2, color: col }); page.drawLine({ start: { x: x - 1, y: y }, end: { x: x + 4, y: y + 7 }, thickness: 1.2, color: col }); } };
+      mark(X1, v === "ok", good); mark(X2, v === "nok", bad); mark(X3, v === "na", grey);
+      page.drawLine({ start: { x: L, y: y - 3.5 }, end: { x: R, y: y - 3.5 }, thickness: 0.3, color: line }); y -= 12; }
+  };
+  chkTable("Besichtigen", pSicht(d)); chkTable("Erproben", pErprob(d));
+  // Messungen
+  const st2col = st => st === "ok" ? good : st === "warn" ? warn : st === "bad" ? bad : ink;
+  if (t.inst) {
+    h2("Messen");
+    const cols = [["Nr.", 18], ["Stromkreis", 60], ["Leitung", 60], ["Schutz", 30], ["RLO Ω", 33], ["Riso MΩ", 40], ["Zs Ω", 30], ["Ik A", 27], ["FI-Typ", 30], ["IΔn mA", 30], ["t ms", 24], ["IΔ mA", 26], ["UB V", 24], ["U V", 24], ["Erg.", 26]];
+    const sc = (R - L) / cols.reduce((s, x) => s + x[1], 0); const xs = []; let xx = L; for (const [, w] of cols) { xs.push(xx); xx += w * sc; }
+    need(24); page.drawRectangle({ x: L, y: y - 4, width: R - L, height: 13, color: fill }); cols.forEach(([h], i) => txt(h, xs[i] + 2, y, { size: 6.3, bold: true })); y -= 13;
+    for (const c of d.circuits) {
+      need(13); const Lm = pLimits(d, c); const anyBad = Object.values(Lm).some(v => v.st === "bad"); const ik = pIk(d, c);
+      const cells = [c.no, c.name, [c.cable, c.len ? c.len + " m" : ""].filter(Boolean).join(", "), c.ocpd && c.inA ? (c.ocpd === "gG" ? "gG " : c.ocpd) + c.inA + " A" : "", nv(c.rlo), nv(c.riso), nv(c.zs), ik ? fmtNum(ik, 0) : "", (c.rcdType || "–").replace("A+DC6", "A+DC"), c.rcdType ? c.idn : "", nv(c.rcdT), nv(c.rcdIa), nv(c.ub), nv(c.u), anyBad ? "n.i.O." : "i.O."];
+      const keys = [null, null, null, null, "rlo", "riso", "zs", null, null, null, "rcdT", "rcdIa", "ub", "u", null];
+      cells.forEach((v, i) => txt(fit(String(v ?? ""), F, 7, cols[i][1] * sc - 3), xs[i] + 2, y, { size: 7, color: i === cells.length - 1 ? (anyBad ? bad : good) : keys[i] ? st2col(Lm[keys[i]]?.st) : ink, bold: i === cells.length - 1 }));
+      page.drawLine({ start: { x: L, y: y - 3.5 }, end: { x: R, y: y - 3.5 }, thickness: 0.3, color: line }); y -= 12;
+    }
+    y -= 2; need(22);
+    for (const s of wrap(pm("Grenzwerte: Riso ≥ 1,0 MΩ (Prüfspannung 500 V DC) · Zs ≤ U0 / Ia (LS B: 5·In, C: 10·In, D: 20·In) · FI: Auslösezeit ≤ 300 ms bei IΔn (selektiv 130–500 ms), Auslösestrom 0,5–1,0 · IΔn (IdN = Bemessungsfehlerstrom) · Berührungsspannung UB ≤ 50 V · Spannung 230 V ± 10 %. Grün = eingehalten, orange = Hinweis, rot = nicht eingehalten."), F, 6.5, R - L)) { need(9); txt(s, L, y, { size: 6.5, color: grey }); y -= 9; }
+  } else {
+    h2("Messen");
+    const cols = [["Nr.", 20], ["Gerät", 80], ["Hersteller / Typ", 80], ["Ser.-Nr.", 56], ["SK", 18], ["RPE Ω", 34], ["Riso MΩ", 38], ["IPE mA", 34], ["IB mA", 32], ["Funktion", 40], ["Erg.", 30]];
+    const sc = (R - L) / cols.reduce((s, x) => s + x[1], 0); const xs = []; let xx = L; for (const [, w] of cols) { xs.push(xx); xx += w * sc; }
+    need(24); page.drawRectangle({ x: L, y: y - 4, width: R - L, height: 13, color: fill }); cols.forEach(([h], i) => txt(h, xs[i] + 2, y, { size: 6.8, bold: true })); y -= 13;
+    for (const c of d.circuits) { need(13); const Lm = pLimits(d, c); const anyBad = Object.values(Lm).some(v => v.st === "bad") || c.func === "nok";
+      const cells = [c.no, c.name, c.maker, c.sn, c.sk, nv(c.rpe), nv(c.riso), nv(c.ipe), nv(c.ib), c.func === "ok" ? "i.O." : c.func === "nok" ? "n.i.O." : "", anyBad ? "n.i.O." : "i.O."]; const keys = [null, null, null, null, null, "rpe", "riso", "ipe", "ib", null, null];
+      cells.forEach((v, i) => txt(fit(String(v ?? ""), F, 7, cols[i][1] * sc - 3), xs[i] + 2, y, { size: 7, color: i === cells.length - 1 ? (anyBad ? bad : good) : keys[i] ? st2col(Lm[keys[i]]?.st) : ink, bold: i === cells.length - 1 }));
+      page.drawLine({ start: { x: L, y: y - 3.5 }, end: { x: R, y: y - 3.5 }, thickness: 0.3, color: line }); y -= 12; }
+    y -= 2; for (const s of wrap(pm("Grenzwerte: RPE ≤ 0,3 Ω bis 5 m Leitung (+0,1 Ω je 7,5 m, max. 1 Ω) · Riso ≥ 1 MΩ (SK I), ≥ 2 MΩ (SK II) · IPE ≤ 3,5 mA · IB ≤ 0,5 mA"), F, 6.5, R - L)) { need(9); txt(s, L, y, { size: 6.5, color: grey }); y -= 9; }
+  }
+  if (t.wb) { h2("Netzbetreiber und Übergabe"); for (const [k, l] of P_WBSTEPS) { need(12); const v = d.steps?.[k]; txt(l, L + 4, y, { size: 8 }); txt(v === "na" ? "entfällt" : v ? "erledigt am " + fmtDate(v) : "offen", R, y, { size: 8, align: "right", color: v ? ink : grey }); y -= 12; } }
+  h2("Ergebnis");
+  const prob = pProblems(d); const ok = d.res?.ok === "ja";
+  need(30); txt(ok ? "Es wurden keine Mängel festgestellt. Die Anlage entspricht den anerkannten Regeln der Elektrotechnik (DIN VDE)." : "Es wurden Mängel festgestellt (siehe unten). Die Mängel sind vor der weiteren Nutzung zu beseitigen.", L + 4, y, { size: 8.5, bold: true, color: ok ? good : bad }); y -= 13;
+  for (const ln of wrap(pm([d.res?.defects, ...(ok ? [] : prob)].filter(Boolean).join("\n")), F, 8.5, R - L - 8)) { need(12); txt(ln, L + 4, y, { size: 8.5 }); y -= 11.5; }
+  if (d.res?.next) { need(12); txt("Nächste Prüfung empfohlen bis: " + fmtDate(d.res.next), L + 4, y, { size: 8.5 }); y -= 14; }
+  // Unterschriften
+  need(110); y -= 10; const sw = (R - L - 30) / 2;
+  const sigBox = async (x, data, l1, l2) => { if (data) { try { const by = Uint8Array.from(atob(data.split(",")[1]), ch => ch.charCodeAt(0)); const img = await pdf.embedPng(by); const s = Math.min(sw / img.width, 55 / img.height); page.drawImage(img, { x, y: y - 58, width: img.width * s, height: img.height * s }); } catch (e) { } }
+    page.drawLine({ start: { x, y: y - 62 }, end: { x: x + sw, y: y - 62 }, thickness: 0.6, color: grey }); txt(l1, x, y - 72, { size: 7.5, color: grey }); txt(l2, x, y - 82, { size: 8 }); };
+  await sigBox(L, d.sign?.p, `${c.city || ""}, ${fmtDate(d.date)} – Unterschrift Prüfer`, d.inspector || c.owner || "");
+  await sigBox(L + sw + 30, d.sign?.k, "Unterschrift Auftraggeber", d.sign?.kName || unent(a.name || cname(d.contactId)) || "");
+  y -= 92;
+  // Fotos als Anhang
+  const ph = (d.photos || []).filter(p => p.id);
+  for (let i = 0; i < ph.length; i++) {
+    try { const b = await blobOf(ph[i]); const bm = await createImageBitmap(b); const k = Math.min(1, 1600 / Math.max(bm.width, bm.height)); const cv = document.createElement("canvas"); cv.width = bm.width * k; cv.height = bm.height * k; cv.getContext("2d").drawImage(bm, 0, 0, cv.width, cv.height);
+      const jb = new Uint8Array(await (await new Promise(r => cv.toBlob(r, "image/jpeg", 0.82))).arrayBuffer()); const img = await pdf.embedJpg(jb);
+      const maxH = 330; const s = Math.min((R - L) / img.width, maxH / img.height); if (i % 2 === 0 || y - img.height * s - 30 < 50) { newPage(); h2("Fotos"); }
+      page.drawImage(img, { x: L, y: y - img.height * s, width: img.width * s, height: img.height * s }); y -= img.height * s + 12; txt(`Foto ${i + 1}${ph[i].cap ? ": " + ph[i].cap : ""}`, L, y, { size: 8, color: grey }); y -= 16;
+    } catch (e) { console.warn("Foto", e); }
+  }
+  const pages = pdf.getPages(); pages.forEach((p, i) => p.drawText(pdfSafe(`Seite ${i + 1} von ${pages.length}`), { x: R - 50, y: 26, size: 7, font: F, color: grey }));
+  pdf.setTitle(`Prüfprotokoll ${d.number || ""}`); pdf.setAuthor(c.name || ""); pdf.setCreator("Labertal Buchhaltung");
+  return await pdf.save();
+}
+
+/* ---- Erinnerungen auf der Startseite ---- */
+function protoTodos() {
+  const out = []; const c = S.company || {}; const today = todayISO(); const soon = addDays(today, 30);
+  if (c.meterCal) { const due = addDays(c.meterCal, Math.round((Number(c.meterCalMonths) || 12) * 30.44)); if (due <= soon) out.push(`<a href="#einstellungen" class="${due < today ? "bad" : "info"}">${ICON.tool}<div><b>Messgerät kalibrieren lassen</b><div class="small muted">${esc(c.meterName || "Messgerät")} · ${due < today ? "überfällig seit" : "fällig"} ${fmtDate(due)}</div></div></a>`); }
+  for (const p of S.protocols.values()) {
+    if (p.status !== "fertig") continue; const who = esc(unent(p.address?.name || cname(p.contactId) || ""));
+    if (p.res?.next && p.res.next <= addDays(today, 60) && !p.followedUp) out.push(`<a href="#" class="info" data-act="openProto" data-id="${p.id}">${ICON.shield}<div><b>Wiederholungsprüfung bei ${who}</b><div class="small muted">${PT[p.template]?.label || ""} · fällig ${fmtDate(p.res.next)}</div></div></a>`);
+    if (p.template === "wallbox") { const open = P_WBSTEPS.filter(([k]) => !p.steps?.[k] && !(k === "nb_genehmigung" && Number(p.wb?.kw) <= 11) && !(k === "p14a" && Number(p.wb?.kw) <= 4.2)); if (open.length) out.push(`<a href="#" class="info" data-act="openProto" data-id="${p.id}">${ICON.shield}<div><b>Wallbox ${who}: ${open.length} Schritte offen</b><div class="small muted">${esc(open.slice(0, 2).map(x => x[1]).join(" · "))}${open.length > 2 ? " …" : ""}</div></div></a>`); }
+  }
+  return out;
+}
+
 /* ===================== Sheet ===================== */
 function renderSheet() {
   const s = UI.sheet; const el = $("#sheet");
   if (!s) { el.classList.remove("open"); $("#sheetBg").classList.remove("open"); el.innerHTML = ""; return; }
-  el.innerHTML = s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
+  el.innerHTML = s.type === "protoNew" ? sheetProtoNew() : s.type === "protocol" ? sheetProtocol() : s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
   el.classList.add("open"); $("#sheetBg").classList.add("open");
+  if (s.type === "protocol") pAfter();
 }
 function closeSheet() { UI.sheet = null; renderSheet(); }
 function sheetPay() {
@@ -1765,6 +2138,22 @@ document.addEventListener("click", async e => {
   try {
     switch (act) {
       case "stab": UI.salesTab = el.dataset.tab; render(); break;
+      case "newProto": UI.sheet = { type: "protoNew" }; renderSheet(); break;
+      case "protoTpl": { const d = newProtocol(el.dataset.k); UI.sheet = { type: "protocol", d, isNew: true }; renderSheet(); break; }
+      case "openProto": { const d = S.protocols.get(id); if (d) { UI.sheet = { type: "protocol", d: JSON.parse(JSON.stringify(d)) }; renderSheet(); } break; }
+      case "pChk": { const d = UI.sheet.d; d.checks = d.checks || {}; d.checks[el.dataset.k] = d.checks[el.dataset.k] === el.dataset.v ? "" : el.dataset.v; pRerender(); break; }
+      case "pAllOk": { const d = UI.sheet.d; d.checks = d.checks || {}; for (const k of el.dataset.keys.split(",")) if (!d.checks[k]) d.checks[k] = "ok"; pRerender(); break; }
+      case "pAddC": { const d = UI.sheet.d; const prev = d.circuits.at(-1); const c = blankCircuit(d, d.circuits.length); if (prev && d.template !== "geraet") { c.rcdType = prev.rcdType; c.idn = prev.idn; } d.circuits.push(c); pRerender(); break; }
+      case "pDelC": { if (!confirmInline(el, "Diesen Eintrag entfernen?")) break; UI.sheet.d.circuits.splice(Number(el.dataset.i), 1); pRerender(); break; }
+      case "pDelPhoto": UI.sheet.d.photos.splice(Number(el.dataset.i), 1); pRerender(); break;
+      case "pSigClear": { UI.sheet.d.sign = { ...(UI.sheet.d.sign || {}) }; delete UI.sheet.d.sign[el.dataset.k]; pRerender(); break; }
+      case "pStepNa": { const d = UI.sheet.d; d.steps = d.steps || {}; d.steps[el.dataset.k] = d.steps[el.dataset.k] === "na" ? "" : "na"; if (d.status === "fertig") await pSaveDoc(d); pRerender(); break; }
+      case "pSave": { const d = UI.sheet.d; await pSaveDoc(d); UI.sheet.isNew = false; toast("Gespeichert."); pRerender(); break; }
+      case "pFinish": await pFinish(); break;
+      case "pReopen": { const d = UI.sheet.d; d.status = "entwurf"; await pSaveDoc(d); pRerender(); toast("Wieder offen – nach Änderungen nochmal auf „Fertig“ tippen, dann gibt es ein neues PDF."); break; }
+      case "pShare": await pShare(false); break;
+      case "pShareSale": await pShare(true); break;
+      case "pDelete": { if (!confirmInline(el, "Protokoll wirklich löschen?")) break; await del("protocols", UI.sheet.d.id); closeSheet(); toast("Protokoll gelöscht."); break; }
       case "vtab": UI.vTab = el.dataset.tab; if (route() !== "belege") location.hash = "belege"; else render(); break;
       case "btab": UI.bankTab = el.dataset.tab; render(); break;
       case "newSale": newSale(el.dataset.kind); break;
@@ -1831,7 +2220,7 @@ document.addEventListener("click", async e => {
       case "openAsset": UI.sheet = { type: "asset", d: { ...S.assets.get(id) } }; renderSheet(); break;
       case "saveAsset": { const a = UI.sheet.d; $$("[data-asf]", $("#sheet")).forEach(x => a[x.dataset.asf] = x.value); a.cost = parseNum(a.cost); a.months = parseInt(a.months, 10) || 36; if (!a.name) { toast("Bitte eine Bezeichnung eintragen."); break; } await put("assets", a.id, a); closeSheet(); break; }
       case "deleteAsset": if (!confirmInline(el, "Anlage löschen?")) break; await del("assets", UI.sheet.d.id); closeSheet(); break;
-      case "saveSettings": { const d = {}; $$("[data-set]").forEach(x => d[x.dataset.set] = x.value); for (const k of ["nextInvoice", "nextQuote", "paymentDays"]) d[k] = parseInt(d[k], 10) || 0; if (d.kmRate !== undefined) d.kmRate = parseNum(d.kmRate) || 0.75; if (d.taxReserveRate !== undefined) d.taxReserveRate = parseNum(d.taxReserveRate) || 30; await saveCompany(d); toast("Einstellungen gespeichert."); break; }
+      case "saveSettings": { const d = {}; $$("[data-set]").forEach(x => d[x.dataset.set] = x.value); for (const k of ["nextInvoice", "nextQuote", "paymentDays"]) d[k] = parseInt(d[k], 10) || 0; if (d.kmRate !== undefined) d.kmRate = parseNum(d.kmRate) || 0.75; if (d.taxReserveRate !== undefined) d.taxReserveRate = parseNum(d.taxReserveRate) || 30; if (d.meterCalMonths !== undefined) d.meterCalMonths = parseInt(d.meterCalMonths, 10) || 12; await saveCompany(d); toast("Einstellungen gespeichert."); break; }
       case "pickLogo": $("#logoPick").click(); break;
       case "backup": e.preventDefault(); await backup(); break;
       case "runImport": await runImport(); break;
@@ -1863,11 +2252,24 @@ function confirmInline(btn, msg) { if (btn.dataset.armed === "1") return true; c
 document.addEventListener("input", e => {
   const el = e.target;
   if (el.dataset.inp === "search") { UI.search = el.value; scheduleRender(); return; }
+  if (UI.sheet?.type === "protocol" && el.dataset.pp && el.tagName !== "SELECT") { pSet(UI.sheet.d, el.dataset.pp, el.value); pLiveUpdate(el.dataset.pp); return; }
   if (UI.sheet?.type === "sale" && (el.dataset.it != null)) { const d = readSaleForm(); const i = Number(el.dataset.it); const s = $("#it-sum-" + i); if (s) s.textContent = eur(itemNet(d.items[i])); $("#s-totals").innerHTML = totalsHtml(d, salesTotals(d)); }
 });
 document.addEventListener("change", async e => {
   const el = e.target;
   if (el.id === "taxYear") { UI.taxYear = Number(el.value); UI.taxMonth = null; render(); return; }
+  if (UI.sheet?.type === "protocol" && el.dataset.pp) {
+    const d = UI.sheet.d; pSet(d, el.dataset.pp, el.value);
+    if (el.dataset.pp === "contactId") { const c = S.contacts.get(el.value); d.address = c ? { name: c.name, street: c.street, zip: c.zip, city: c.city } : {}; if (!d.sign?.kName && c) d.sign = { ...(d.sign || {}), kName: unent(c.name) }; d.saleId = ""; }
+    if (el.dataset.pp.startsWith("steps.") && d.status === "fertig") await pSaveDoc(d);
+    if (el.tagName === "SELECT" || el.dataset.pp === "date") pRerender(); return;
+  }
+  if (UI.sheet?.type === "protocol" && el.dataset.pphoto != null) {
+    const files = [...el.files]; el.value = ""; const d = UI.sheet.d; const ci = el.dataset.pphoto; toast("Foto wird hochgeladen …");
+    for (const f of files) { const up = await assets.upload(f); d.photos = [...(d.photos || []), { id: up.id, name: f.name, type: f.type, cap: ci === "x" ? "" : `Messgerät – Stromkreis ${d.circuits[Number(ci)]?.no || ""}`, circuit: ci === "x" ? null : Number(ci) }]; }
+    if (ci !== "x") { d.claudeRead = true; toast("Foto gespeichert. Claude trägt die Werte beim nächsten Check ein – oder du tippst sie selbst ein.", 6000); }
+    await pSaveDoc(d); UI.sheet.isNew = false; pRerender(); return;
+  }
   if (el.id === "s-contact") { if (el.value === "__new") { const back = UI.sheet; readSaleForm(); UI.sheet = { type: "contact", d: { id: uid(), name: "", isCustomer: true, isVendor: false, country: "DE" }, isNew: true, back }; renderSheet(); return; }
     const c = S.contacts.get(el.value); const d = readSaleForm(); if (c) { d.contactId = c.id; d.address = { name: c.name, street: c.street, zip: c.zip, city: c.city, country: c.country || "DE", customerNo: c.customerNo, vatId: c.vatId }; } renderSheet(); return; }
   if (el.id === "s-tax") { readSaleForm(); if (UI.sheet.d.taxMode === "rc13b") UI.sheet.d.items.forEach(i => i.vat = 0); else UI.sheet.d.items.forEach(i => { if (!Number(i.vat)) i.vat = 19; }); renderSheet(); return; }
