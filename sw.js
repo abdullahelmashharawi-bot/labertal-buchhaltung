@@ -1,6 +1,6 @@
 // Labertal Buchhaltung – Service Worker
 // 1) App offline startbar  2) Belegbilder (_blob/<id>) aus dem privaten GitHub-Repo laden und zwischenspeichern
-const APP = "lb-app-v4", BLOBS = "lb-blobs", CFG = "lb-cfg";
+const APP = "lb-app-v5", BLOBS = "lb-blobs", CFG = "lb-cfg";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(APP).then(c => c.addAll(SHELL)).catch(() => { })); });

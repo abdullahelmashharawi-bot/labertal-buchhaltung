@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f63c6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -44,7 +44,8 @@ h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;text-wr
 h1{font-size:28px} h2{font-size:21px} h3{font-size:17px}
 .num,td.num,th.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 a{color:var(--accent)}
-.app{display:grid;grid-template-columns:220px 1fr;min-height:100%}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100%}
+main{min-width:0}
 nav.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
 .brand img{width:40px;height:40px;object-fit:contain}
@@ -65,7 +66,10 @@ main{padding:calc(24px + env(safe-area-inset-top)) clamp(16px,3vw,36px) 80px;max
 .btn.sm{padding:4px 10px;font-size:13px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.list,.tbl-wrap,.stat,.morelist a,.todo a{box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.btn{transition:background .15s,border-color .15s,transform .05s}.btn:active{transform:scale(.97)}
+.only-m{display:none}
 .grid{display:grid;gap:14px}
 .tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .tile .lbl{color:var(--muted);font-size:13px}
@@ -106,7 +110,7 @@ label.f > span{font-weight:500}
 .sheet-head{display:flex;gap:10px;align-items:center;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .sheet-head h2{flex:1}
 .sheet-body{overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px;flex:1}
-.sheet-body>*{flex:none}
+.sheet-body>*{flex:none;min-width:0;max-width:100%}
 .items td{padding:6px 6px}
 .items input,.items select{padding:6px 8px}
 .items .desc{min-width:220px}
@@ -201,7 +205,7 @@ label.f > span{font-weight:500}
 .todo a svg{color:var(--muted)}
 .ic svg{width:22px;height:22px}
 @media (max-width:820px){
-  .app{grid-template-columns:1fr}
+  .app{grid-template-columns:minmax(0,1fr)}
   nav.side{display:none}
   #tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--panel);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
   #tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--muted);text-decoration:none;padding:4px 0;position:relative}
@@ -224,6 +228,62 @@ label.f > span{font-weight:500}
   .sheet-body{padding:14px}
   .toast{bottom:96px}
   .hide-m{display:none}
+  .only-m{display:block} .only-d{display:none!important}
+  html,body{overflow-x:hidden}
+  body{font-size:16px}
+  input,select,textarea{font-size:16px;padding:10px 12px;border-radius:10px}
+  .btn{padding:10px 14px;border-radius:12px}
+  .btn.sm{padding:7px 12px;font-size:14px;border-radius:10px}
+  .card{border-radius:18px}
+  .list,.tbl-wrap{border-radius:18px}
+  /* Kopfzeile: Titel oben, Knöpfe als Reihe darunter */
+  .head{margin-bottom:14px}
+  .head h1{flex:1 1 100%;font-size:28px}
+  .head > .btn{flex:1 1 auto;justify-content:center}
+  /* Reiter als wischbare Leiste */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-left:-14px;margin-right:-14px;padding:0 14px 2px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:none;padding:8px 15px}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar input{max-width:none!important}
+  /* Tabellen werden zu Karten */
+  .tbl-wrap{overflow:visible}
+  .tbl-wrap:not(.keep) table,.tbl-wrap:not(.keep) tbody,.tbl-wrap:not(.keep) tr,.tbl-wrap:not(.keep) td{display:block;width:auto!important}
+  .tbl-wrap:not(.keep) thead{display:none}
+  .tbl-wrap:not(.keep) tr{padding:12px 16px;border-bottom:1px solid var(--line)}
+  .tbl-wrap:not(.keep) tbody tr:last-child{border-bottom:0}
+  .tbl-wrap:not(.keep) td{border:0;padding:2px 0;text-align:left!important}
+  .tbl-wrap:not(.keep) td:empty{display:none}
+  .tbl-wrap:not(.keep) td[data-l]{display:flex;gap:10px;align-items:baseline}
+  .tbl-wrap:not(.keep) td[data-l]::before{content:attr(data-l);flex:0 0 38%;color:var(--muted);font-size:13px;font-weight:400}
+  .tbl-wrap:not(.keep) td:first-child{font-weight:600}
+  .tbl-wrap:not(.keep) td.empty::before{display:none}
+  .tbl-wrap:not(.keep) tr.click:hover td{background:none}
+  .tbl-wrap:not(.keep) tr.click:active{background:var(--chip)}
+  /* Positionen in Rechnung und Beleg */
+  .items tr{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px}
+  .items td{padding:0!important}
+  .items td[data-l]{display:block!important}
+  .items td::before{display:block!important;margin-bottom:2px}
+  .items td.desc,.items td.wide-m{grid-column:1/-1}
+  .sale-items td:first-child{display:none!important}
+  .items td.num{align-self:end;font-weight:600}
+  .tbl-wrap.keep{overflow-x:auto}
+  .tbl-wrap.keep th,.tbl-wrap.keep td{padding:7px 5px;font-size:13px}
+  .tbl-wrap.keep th{font-size:10.5px;letter-spacing:0}
+  /* Editor als Vollbild mit fester Kopfzeile */
+  .sheet{width:100%;transform:translateY(100%)}
+  .sheet.open{box-shadow:none}
+  .sheet-head{position:sticky;top:0;z-index:2;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;gap:8px;flex-wrap:wrap}
+  .sheet-head h2{flex:1 1 100%;font-size:20px;line-height:1.2}
+  .sheet-head .btn{flex:1 1 auto;justify-content:center;padding:9px 10px;font-size:14px}
+  .sheet-body{padding:14px 14px calc(30px + env(safe-area-inset-bottom))}
+  .sheet-body .grid,.sheet-body .split{grid-template-columns:minmax(0,1fr)!important}
+  .form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form > label.f:has(textarea),.form > label.f.wide{grid-column:1/-1}
+  .preview{max-height:60vh}
+  .morelist{grid-template-columns:1fr}
+  .li{padding:13px 14px}
 }
 </style>
 </head>
@@ -273,8 +333,8 @@ function toast(msg, ms = 3200) { const t = $("#toast"); t.textContent = msg; t.c
 const S = { company: null, contacts: new Map(), sales: new Map(), vouchers: new Map(), bank: new Map(), assets: new Map(), ustva: new Map(), loaded: new Set(), ok: false, readOnly: false };
 const UI = { sheet: null, salesTab: "alle", vTab: "alle", bankTab: "offen", taxYear: new Date().getFullYear(), taxMonth: null, search: "" };
 let db = null, assets = null, sample = null, downloads = null;
-const COLS = ["contacts", "sales", "vouchers", "bank", "assets", "ustva", "trips", "protocols"];
-S.trips = new Map(); S.protocols = new Map(); S.gh = null; S.check = null;
+const COLS = ["contacts", "sales", "vouchers", "bank", "assets", "ustva", "trips", "protocols", "jobs"];
+S.trips = new Map(); S.protocols = new Map(); S.jobs = new Map(); S.gh = null; S.check = null;
 const SUPA_URL = "https://skhgixekbfnfctkbxjrr.supabase.co", SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNraGdpeGVrYmZuZmN0a2J4anJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNzI3MTksImV4cCI6MjExMDc0ODcxOX0.ApTigCTMhzpDCnqUwVeChNJ2Y7pbppXfxgBJCfQjvfI";
 const GH_REPO_DEFAULT = "abdullahelmashharawi-bot/labertal-belege";
 let supa = null, session = null;
@@ -596,7 +656,7 @@ const QUICK_CATS = ["Fuel", "MaterialsGoods", "SmallParts", "MotorVehicle", "Ent
 const QUICK_LABEL = { Fuel: "Tanken", MaterialsGoods: "Material", SmallParts: "Werkzeug", MotorVehicle: "Auto", EntertainmentExpenses: "Essen/Bewirtung", OfficeSupplies: "Büro", LicencesConcessions: "Software", OtherExpenditure: "Sonstiges", PrivateWithdrawal: "Privat" };
 
 /* ===================== Navigation ===================== */
-const ROUTES = [["start", "Start"], ["belege", "Belege"], ["rechnungen", "Rechnungen"], ["steuer", "Steuer"], ["fahrten", "Fahrtenbuch"], ["protokolle", "Prüfprotokolle"], ["bank", "Bank"], ["kontakte", "Kontakte"], ["anlagen", "Anlagen"], ["einstellungen", "Einstellungen"], ["mehr", "Mehr"]];
+const ROUTES = [["start", "Start"], ["belege", "Belege"], ["rechnungen", "Rechnungen"], ["steuer", "Steuer"], ["fahrten", "Fahrtenbuch"], ["einsaetze", "Einsätze"], ["protokolle", "Prüfprotokolle"], ["bank", "Bank"], ["kontakte", "Kontakte"], ["anlagen", "Anlagen"], ["einstellungen", "Einstellungen"], ["mehr", "Mehr"]];
 function route() { const h = location.hash.replace("#", ""); return ROUTES.some(r => r[0] === h) ? h : "start"; }
 function renderNav() {
   const cur = route(); const c = S.company || {};
@@ -607,7 +667,7 @@ function renderNav() {
     <button class="btn pri side-cta" data-act="snap">${ICON.cam} Beleg fotografieren</button>` +
     ROUTES.filter(r => r[0] !== "mehr").map(([k, l]) => { let b = ""; if (k === "belege" && pruefen) b = `<span class="badge">${pruefen}</span>`; if (k === "bank" && bankOpen) b = `<span class="badge">${bankOpen}</span>`; return `<a href="#${k}" class="${k === cur ? "on" : ""}">${l}${b}</a>`; }).join("") +
     `<div class="spacer"></div><a href="#einstellungen" data-act="gobackup" class="small muted">Datensicherung</a>`;
-  const moreOn = ["mehr", "steuer", "bank", "kontakte", "anlagen", "einstellungen", "fahrten", "protokolle"].includes(cur);
+  const moreOn = ["mehr", "steuer", "bank", "kontakte", "anlagen", "einstellungen", "fahrten", "protokolle", "einsaetze"].includes(cur);
   $("#tabbar").innerHTML = `<a href="#start" class="${cur === "start" ? "on" : ""}">${ICON.home}<span>Start</span></a>
     <a href="#belege" class="${cur === "belege" ? "on" : ""}">${ICON.rec}<span>Belege</span>${pruefen ? `<em class="dot">${pruefen}</em>` : ""}</a>
     <a href="#" class="fab" data-act="snap" aria-label="Beleg fotografieren"><i>${ICON.cam}</i><span>Foto</span></a>
@@ -618,12 +678,14 @@ function render() {
   if (!S.ok) return; renderNav(); queueArchive(); queueThumbs();
   const r = route(); const v = $("#view");
   if (S.ok && needsImport() && route() !== "start") { location.hash = "start"; }
-  const fn = { protokolle: viewProtocols, fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
+  const fn = { einsaetze: viewJobs, protokolle: viewProtocols, fahrten: viewTrips, start: viewStart, rechnungen: viewSales, belege: viewVouchers, bank: viewBank, steuer: viewTax, kontakte: viewContacts, anlagen: viewAssets, einstellungen: viewSettings, mehr: viewMore }[r];
   const keep = document.activeElement && v.contains(document.activeElement) && document.activeElement.matches("input,select,textarea") ? document.activeElement.id : null;
   v.innerHTML = fn();
   if (keep) { const el = document.getElementById(keep); if (el) { el.focus(); if (el.setSelectionRange && el.type === "text") { const l = el.value.length; el.setSelectionRange(l, l); } } }
   if (r === "start") drawChart();
+  labelTables(v);
 }
+function labelTables(root) { for (const t of root.querySelectorAll(".tbl-wrap table")) { const hs = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim()); for (const tr of t.querySelectorAll("tbody tr")) [...tr.children].forEach((td, i) => { if (hs[i] && !td.hasAttribute("data-l") && !td.hasAttribute("colspan")) td.dataset.l = hs[i]; }); } }
 
 /* ===================== Datenübernahme aus Lexware (einmalig) ===================== */
 const IMP = { running: false, done: 0, total: 0, err: "" };
@@ -709,7 +771,7 @@ function viewStart() {
   const waitingC = [...S.vouchers.values()].filter(v => v.status === "claude").length;
   if (waitingC) todos.push(`<a href="#belege" class="info" data-act="vtab" data-tab="claude">${ICON.rec}<div><b>${waitingC === 1 ? "1 Beleg wartet" : waitingC + " Belege warten"} auf Claude</b><div class="small muted">Werden beim Wochen-Check ausgelesen – oder jetzt prüfen lassen</div></div></a>`);
   if (pruefen) todos.push(`<a href="#belege" data-act="vtab" data-tab="pruefen">${ICON.rec}<div><b>${pruefen} alte Belege prüfen</b><div class="small muted">Aus Lexware, noch nicht gebucht, viele doppelt</div></div></a>`);
-  { const bt = bankTodo(); if (bt) todos.push(bt); } todos.push(...recurringTodos()); todos.push(...protoTodos());
+  { const bt = bankTodo(); if (bt) todos.push(bt); } todos.push(...recurringTodos()); todos.push(...protoTodos()); todos.push(...jobTodos());
   if (bankOpen) todos.push(`<a href="#bank" class="info">${ICON.bank}<div><b>${bankOpen} Kontoumsätze zuordnen</b></div></a>`);
   for (const d of quotes) todos.push(`<a href="#" class="info" data-act="openSale" data-id="${d.id}">${ICON.inv}<div><b>Angebot an ${esc(salesName(d))} nachfassen</b><div class="small muted">${esc(d.number)} · ${eur(docGross(d))}</div></div></a>`);
   if (bkDays == null || bkDays > 30) todos.push(`<a href="#" data-act="fullBackup">${ICON.shield}<div><b>Datensicherung machen</b><div class="small muted">${bkDays == null ? "Noch nie gesichert" : `Letzte Sicherung vor ${bkDays} Tagen`} · alle Daten und Belegbilder als ZIP</div></div></a>`);
@@ -771,7 +833,8 @@ function viewSales() {
     <button class="btn pri" data-act="newSale" data-kind="rechnung">Neue Rechnung</button><button class="btn" data-act="newSale" data-kind="angebot">Neues Angebot</button></div>
   <div class="toolbar"><div class="tabs" style="margin:0">${tabs.map(([k, l]) => `<button data-act="stab" data-tab="${k}" class="${k === t ? "on" : ""}">${l}</button>`).join("")}</div>
     <input id="search" placeholder="Suchen: Nummer, Kunde, Position" value="${esc(UI.search)}" style="max-width:300px" data-inp="search"></div>
-  <div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Art</th><th>Kunde</th><th>Datum</th><th>Fällig</th><th>Status</th><th class="num">Betrag</th><th class="num">Offen</th></tr></thead><tbody>
+  <div class="list only-m">${list.map(d => `<a class="li" href="#" data-act="openSale" data-id="${d.id}"><span class="ic ${d.kind === "angebot" ? "soft" : "inc"}">${ICON.inv}</span><div><div class="t">${esc(salesName(d))}</div><div class="s">${esc(d.number || "Entwurf")} · ${kindL[d.kind] || d.kind} · ${fmtDate(d.date)}${d.taxMode === "rc13b" ? " · §13b" : ""}</div></div><div class="a">${eur(docGross(d))}<br>${salesChip(d)}</div></a>`).join("") || '<div class="empty">Keine Einträge</div>'}</div>
+  <div class="tbl-wrap only-d"><table><thead><tr><th>Nr.</th><th>Art</th><th>Kunde</th><th>Datum</th><th>Fällig</th><th>Status</th><th class="num">Betrag</th><th class="num">Offen</th></tr></thead><tbody>
   ${list.map(d => `<tr class="click" data-act="openSale" data-id="${d.id}"><td><b>${esc(d.number || "–")}</b></td><td>${kindL[d.kind] || d.kind}${d.taxMode === "rc13b" ? ' <span class="chip">§13b</span>' : ""}</td><td>${esc(salesName(d))}</td><td>${fmtDate(d.date)}</td><td>${fmtDate(d.dueDate)}</td><td>${salesChip(d)}</td><td class="num">${eur(docGross(d))}</td><td class="num">${d.kind === "rechnung" && d.status === "offen" ? eur(openAmount(d)) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="empty">Keine Einträge</td></tr>`}
   </tbody></table></div>`;
 }
@@ -823,7 +886,7 @@ function sheetSale() {
       ${d.kind !== "angebot" ? `<label class="f"><span>Steuer</span><select id="s-tax" data-sf="taxMode" ${dis}><option value="normal" ${d.taxMode !== "rc13b" ? "selected" : ""}>normal (19 % / 7 %)</option><option value="rc13b" ${d.taxMode === "rc13b" ? "selected" : ""}>§13b Reverse Charge (Bauleistung an Firma)</option></select></label>` : ""}
     </div></div>
     <div class="card"><label class="f"><span>Einleitungstext</span><textarea id="s-intro" data-sf="intro" ${dis}>${esc(d.intro || "")}</textarea></label></div>
-    <div class="tbl-wrap"><table class="items"><thead><tr><th>#</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Einzel € (netto)</th><th>USt.</th><th class="num">Gesamt netto</th><th></th></tr></thead><tbody>${items}</tbody></table>
+    <div class="tbl-wrap"><table class="items sale-items"><thead><tr><th>#</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis netto €</th><th>USt.</th><th class="num">Gesamt netto</th><th></th></tr></thead><tbody>${items}</tbody></table>
       ${locked ? "" : `<div style="padding:10px"><button class="btn sm" data-act="addItem">+ Position</button> <button class="btn sm" data-act="addItem" data-preset="anfahrt">+ Anfahrt</button> <button class="btn sm" data-act="addItem" data-preset="arbeit">+ Arbeitszeit</button> <button class="btn sm" data-act="addTrips">+ Fahrten aus Fahrtenbuch</button></div>`}</div>
     <datalist id="units">${UNITS.map(u => `<option value="${u}">`).join("")}</datalist>
     <div class="card"><div class="totals" id="s-totals">${totalsHtml(d, t)}</div></div>
@@ -957,7 +1020,7 @@ function sheetVoucher() {
   const st = UI.sheet; if (st.capture && !st.expand) return sheetCapture();
   const v = st.d; const g = vGross(v); const dup = findDuplicate(v);
   const items = v.items.map((it, i) => { const x = vItemSplit({ cat: it.cat, vat: it.vat, gross: it.gross }); return `<tr>
-    <td style="min-width:210px"><select id="vi-cat-${i}" data-vi="${i}" data-f="cat">${catOptions(it.cat, v.kind)}</select></td>
+    <td class="wide-m" style="min-width:210px"><select id="vi-cat-${i}" data-vi="${i}" data-f="cat">${catOptions(it.cat, v.kind)}</select></td>
     <td style="width:90px"><select id="vi-vat-${i}" data-vi="${i}" data-f="vat">${[19, 7, 0].map(x => `<option value="${x}" ${Number(it.vat) === x ? "selected" : ""}>${x} %</option>`).join("")}</select></td>
     <td style="width:120px"><input id="vi-gross-${i}" data-vi="${i}" data-f="gross" value="${esc(fmtNum(it.gross))}" inputmode="decimal"></td>
     <td class="num small muted" style="width:150px">netto ${eur(x.net)}<br>MwSt. ${eur(x.tax)}</td>
@@ -1255,7 +1318,7 @@ function viewTax() {
   <div class="card"><h2>Umsatzsteuer-Voranmeldung</h2>
     <div class="tabs" style="margin-top:10px">${months.map(([k, z, f]) => `<button data-act="taxMonth" data-m="${k}" class="${k === m ? "on" : ""}" title="${eur(z)}">${MONTHS[k - 1].slice(0, 3)}${f ? " ✓" : ""}</button>`).join("")}</div>
     <h3>${per.label} ${filed ? `<span class="chip good">gemeldet am ${fmtDate(filed.filedAt)}</span>` : ""}</h3>
-    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Kz</th><th>Feld in ELSTER</th><th class="num">Eintragen</th><th class="num">Steuer</th></tr></thead><tbody>
+    <div class="tbl-wrap keep" style="margin-top:8px"><table><thead><tr><th>Kz</th><th>Feld in ELSTER</th><th class="num">Eintragen</th><th class="num">Steuer</th></tr></thead><tbody>
       ${row("81", "Steuerpflichtige Umsätze 19 % (volle Euro)", u.k81, u.ust81)}
       ${u.k86 ? row("86", "Steuerpflichtige Umsätze 7 % (volle Euro)", u.k86, u.ust86) : ""}
       ${u.k60 ? row("60", "Umsätze, für die der Leistungsempfänger die Steuer schuldet (§13b)", u.k60) : ""}
@@ -1268,12 +1331,12 @@ function viewTax() {
       <li>Zeitraum <b>${per.label}</b> wählen, die Zahlen oben in die Felder mit derselben Kennzahl (Kz) eintragen. Antippen kopiert den Wert.</li>
       <li>ELSTER rechnet Kz 83 selbst aus – sie muss <b>${fmtNum(u.k83)} €</b> ergeben. Dann absenden.</li></ol>
     <div class="row">${filed ? `<button class="btn" data-act="unfile" data-k="${per.key}">Markierung „gemeldet“ entfernen</button>` : `<button class="btn pri" data-act="file" data-k="${per.key}" data-v="${u.k83}">Als gemeldet markieren</button>`}</div>
-    <details style="margin-top:12px"><summary class="small">Welche Belege stecken drin? (${u.src.length})</summary><div class="tbl-wrap" style="margin-top:8px"><table><tbody>${u.src.map(s => `<tr><td>${fmtDate(s.date)}</td><td>${esc(unent(s.label))}</td><td class="num">${s.vst != null ? "VSt " + eur(s.vst) : "Zahlung " + eur(s.amount)}</td></tr>`).join("")}</tbody></table></div></details>
+    <details style="margin-top:12px"><summary class="small">Welche Belege stecken drin? (${u.src.length})</summary><div class="tbl-wrap keep" style="margin-top:8px"><table><tbody>${u.src.map(s => `<tr><td>${fmtDate(s.date)}</td><td>${esc(unent(s.label))}</td><td class="num">${s.vst != null ? "VSt " + eur(s.vst) : "Zahlung " + eur(s.amount)}</td></tr>`).join("")}</tbody></table></div></details>
     <p class="small muted">Ist-Versteuerung: Umsätze zählen im Monat des Zahlungseingangs, Vorsteuer nach Belegdatum.</p>
   </div>
   <div class="card"><div class="row" style="justify-content:space-between"><h2>Einnahmenüberschussrechnung ${y}</h2><button class="btn sm" data-act="euerCsv">Als CSV</button></div>
     <p class="small muted" style="margin:6px 0 10px">${y === now.getFullYear() ? "Vorläufig, Stand heute. " : ""}Zeilen und Kennzahlen wie in der Anlage EÜR (Formular 2025). In ELSTER: Anlage EÜR, Wert bei derselben Kennzahl eintragen.</p>
-    <div class="tbl-wrap"><table><thead><tr><th>Zeile</th><th>Kz</th><th>Bezeichnung</th><th class="num">Betrag</th></tr></thead><tbody>${eurRows}</tbody></table></div>
+    <div class="tbl-wrap keep"><table><thead><tr><th>Zeile</th><th>Kz</th><th>Bezeichnung</th><th class="num">Betrag</th></tr></thead><tbody>${eurRows}</tbody></table></div>
     ${[...S.assets.values()].length ? `<p class="small muted">AfA ${y} aus dem Anlagenverzeichnis (Seite „Anlagen“). Für die Anlage AVEÜR dort die Werte ablesen.</p>` : ""}
   </div></div>`;
 }
@@ -1286,6 +1349,7 @@ function viewMore() {
     ${it("#steuer", "tax", "Steuer", "Umsatzsteuer-Voranmeldung und EÜR")}
     ${it("#bank", "bank", "Bank", bankOpen ? bankOpen + " Umsätze offen" : "N26-Umsätze einlesen")}
     ${it("#kontakte", "user", "Kontakte", S.contacts.size + " Kunden und Lieferanten")}
+    ${it("#einsaetze", "cam", "Einsätze", "Fotos vorher/nachher, Sprachnotiz, Arbeitsbericht")}
     ${it("#protokolle", "shield", "Prüfprotokolle", "Messprotokoll nach VDE als PDF")}
     ${it("#fahrten", "car", "Fahrtenbuch", "Fahrten zu Baustellen, Anfahrt in Rechnung")}
     ${it("#anlagen", "car2", "Anlagen", "Fahrzeug, Maschinen, Abschreibung")}
@@ -1462,6 +1526,9 @@ async function syncFolder(pick) {
         const kd = await subDir(kunden, folderOf(pr.contactId, pr.address?.name), cache); await put1(await subDir(kd, "Protokolle", cache), name, get);
       } catch (e) { console.warn("Protokoll", pr.number, e); err++; }
     }
+    for (const j of [...S.jobs.values()].filter(x => x.status === "fertig" && x.pdf?.id)) {
+      try { const kd = await subDir(kunden, folderOf(j.contactId, j.address?.name), cache); await put1(await subDir(kd, "Berichte", cache), j.pdf.name, () => blobOf(j.pdf)); } catch (e) { console.warn("Bericht", j.number, e); err++; }
+    }
     // leere Unterordner für jeden Kunden mit Auftrag anlegen
     for (const cid of new Set([...S.sales.values()].filter(d => d.number && d.status !== "entwurf").map(d => d.contactId).filter(Boolean))) { try { const kd = await subDir(kunden, folderOf(cid), cache); for (const n of ["Angebote", "Rechnungen", "Protokolle"]) await subDir(kd, n, cache); } catch (e) { } }
     await saveCompany({ archive: { ...(S.company.archive || {}), ...(mapChanged ? { customers: map } : {}), lastSync: new Date().toISOString(), lastSyncRoot: root.name } });
@@ -1568,7 +1635,8 @@ function sheetTrip() {
 function viewContacts() {
   const list = [...S.contacts.values()].sort((a, b) => a.name.localeCompare(b.name));
   return `<div class="head"><h1>Kontakte</h1><button class="btn pri" data-act="newContact">Neuer Kontakt</button></div>
-  <div class="tbl-wrap"><table><thead><tr><th>Nr.</th><th>Name</th><th>Adresse</th><th>Rolle</th><th class="num">Umsatz gesamt</th></tr></thead><tbody>
+  <div class="list only-m">${list.map(c => `<a class="li" href="#" data-act="openContact" data-id="${c.id}"><span class="ic">${ICON.user}</span><div><div class="t">${esc(unent(c.name))}</div><div class="s">${esc([c.street, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || (c.customerNo || c.vendorNo || ""))}</div></div><div class="a">${c.isCustomer ? '<span class="chip info">Kunde</span>' : ""}${c.isVendor ? '<span class="chip">Lieferant</span>' : ""}</div></a>`).join("")}</div>
+  <div class="tbl-wrap only-d"><table><thead><tr><th>Nr.</th><th>Name</th><th>Adresse</th><th>Rolle</th><th class="num">Umsatz gesamt</th></tr></thead><tbody>
   ${list.map(c => { const sum = [...S.sales.values()].filter(d => d.contactId === c.id && d.kind === "rechnung" && d.status !== "storniert" && d.status !== "entwurf").reduce((a, d) => a + docGross(d), 0);
     return `<tr class="click" data-act="openContact" data-id="${c.id}"><td>${c.customerNo || c.vendorNo || ""}</td><td><b>${esc(unent(c.name))}</b>${c.archived ? ' <span class="chip">archiviert</span>' : ""}</td><td class="small">${esc([c.street, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", "))}</td><td>${c.isCustomer ? '<span class="chip info">Kunde</span> ' : ""}${c.isVendor ? '<span class="chip">Lieferant</span>' : ""}</td><td class="num">${sum ? eur(sum) : ""}</td></tr>`; }).join("")}
   </tbody></table></div>`;
@@ -2111,15 +2179,165 @@ function protoTodos() {
   return out;
 }
 
+/* ===================== Einsätze: Fotos, Sprachnotiz, Arbeitsbericht ===================== */
+async function shrinkImage(f, max = 2000) { try { const bm = await createImageBitmap(f); const k = Math.min(1, max / Math.max(bm.width, bm.height)); if (k === 1 && f.size < 1.5e6) return f; const cv = document.createElement("canvas"); cv.width = Math.round(bm.width * k); cv.height = Math.round(bm.height * k); cv.getContext("2d").drawImage(bm, 0, 0, cv.width, cv.height); const b = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85)); return new File([b], (f.name || "foto").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }); } catch (e) { return f; } }
+const J_STATUS = { entwurf: ["Entwurf", ""], claude: ["bei Claude", "info"], bericht: ["Bericht prüfen", "warn"], fertig: ["fertig", "good"] };
+function newJob(extra = {}) { return { id: uid(), status: "entwurf", date: todayISO(), contactId: "", address: {}, site: "", title: "", start: "", end: "", pause: "", photos: [], notes: "", dictations: [], report: "", sign: {}, createdAt: new Date().toISOString(), ...extra }; }
+function jobName(j) { return unent(j.address?.name || cname(j.contactId) || "Ohne Kunde"); }
+function jobHours(j) { if (!j.start || !j.end) return null; const [a, b] = [j.start, j.end].map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; }); let min = b - a - (parseNum(j.pause) || 0); if (min < 0) min += 1440; return min / 60; }
+function viewJobs() {
+  const list = [...S.jobs.values()].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return `<div class="head"><h1>Einsätze</h1><button class="btn pri" data-act="newJob">+ Einsatz</button></div>
+  <p class="small muted" style="margin-top:-6px">Beim Kunden: Fotos vorher und nachher machen, kurz sagen was du gemacht hast – daraus wird der Arbeitsbericht.</p>
+  <div class="list">${list.map(j => { const st = J_STATUS[j.status] || J_STATUS.entwurf; const pv = (j.photos || []).find(p => p.kind === "nachher") || (j.photos || [])[0];
+    return `<a class="li" href="#" data-act="openJob" data-id="${j.id}">${pv ? `<span class="ic pic"><img src="_blob/${esc(pv.id)}" alt="" loading="lazy"></span>` : `<span class="ic tool">${ICON.tool}</span>`}<div><div class="t">${esc(jobName(j))}${j.title ? " · " + esc(j.title) : ""}</div><div class="s">${fmtDate(j.date)}${j.site ? " · " + esc(j.site) : ""} · ${(j.photos || []).length} Fotos</div></div><div class="a"><span class="chip ${st[1]}">${st[0]}</span></div></a>`; }).join("") || '<div class="empty">Noch keine Einsätze. Tippe auf „+ Einsatz“.</div>'}</div>`;
+}
+function sheetJob() {
+  const s = UI.sheet; const j = s.d; const ro = j.status === "fertig"; const h = jobHours(j);
+  const sales = [...S.sales.values()].filter(x => j.contactId && x.contactId === j.contactId).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const ph = kind => (j.photos || []).map((p, i) => p.kind !== kind ? "" : `<div class="pphoto"><img src="_blob/${esc(p.id)}" alt="" loading="lazy" data-act="jView" data-i="${i}"><input data-jp="photos.${i}.cap" value="${esc(p.cap || "")}" placeholder="Beschreibung" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="btn sm" data-act="jDelPhoto" data-i="${i}">entfernen</button>`}</div>`).join("");
+  const photoBtn = kind => ro ? "" : `<div class="row"><label class="btn">${ICON.cam} Foto machen<input type="file" accept="image/*" capture="environment" hidden data-jphoto="${kind}"></label><label class="btn">aus Galerie<input type="file" accept="image/*" multiple hidden data-jphoto="${kind}"></label></div>`;
+  const rec = UI.jrec;
+  const sig = (k, label) => `<div class="psig"><div class="small muted">${label}</div>${j.sign?.[k] ? `<img src="${j.sign[k]}" alt="Unterschrift">${ro ? "" : `<button class="btn sm" data-act="jSigClear" data-k="${k}">neu</button>`}` : ro ? "<i class='small muted'>keine</i>" : `<canvas class="sigpad" data-sig="${k}" width="600" height="180"></canvas>`}</div>`;
+  return `<div class="sheet-head"><h2>Einsatz${j.title ? ": " + esc(j.title) : ""}</h2>
+    ${ro ? `<button class="btn pri" data-act="jShare">Bericht teilen</button><button class="btn" data-act="jReopen">Bearbeiten</button>` : `<button class="btn" data-act="jSave">Speichern</button>`}
+    <button class="btn" data-act="closeSheet">Schließen</button></div>
+  <div class="sheet-body">
+    <div class="card"><div class="form">
+      <label class="f wide"><span>Kunde</span><select data-jp="contactId" ${ro ? "disabled" : ""}>${contactOptions(j.contactId, "isCustomer").replace('<option value="__new">+ Neuer Kontakt …</option>', "")}</select></label>
+      <label class="f wide"><span>Was wird gemacht?</span><input data-jp="title" value="${esc(j.title || "")}" placeholder="z. B. Wallbox montieren" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Datum</span><input type="date" data-jp="date" value="${esc(j.date || "")}" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Baustelle / Ort</span><input data-jp="site" value="${esc(j.site || "")}" placeholder="falls nicht Kundenadresse" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Beginn</span><input type="time" data-jp="start" value="${esc(j.start || "")}" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Ende</span><input type="time" data-jp="end" value="${esc(j.end || "")}" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Pause (Minuten)</span><input data-jp="pause" value="${esc(j.pause || "")}" inputmode="numeric" ${ro ? "disabled" : ""}></label>
+      <label class="f"><span>Arbeitszeit</span><input disabled value="${h != null ? fmtNum(h) + " Std." : ""}" id="j-hours"></label>
+      <label class="f wide"><span>Gehört zu Angebot / Rechnung</span><select data-jp="saleId" ${ro ? "disabled" : ""}><option value="">–</option>${sales.map(x => `<option value="${x.id}" ${x.id === j.saleId ? "selected" : ""}>${x.kind === "angebot" ? "Angebot" : "Rechnung"} ${esc(x.number || "Entwurf")} · ${fmtDate(x.date)}</option>`).join("")}</select></label>
+    </div></div>
+    <div class="card"><h3>Fotos vorher</h3><div class="pphotos">${ph("vorher")}</div>${photoBtn("vorher")}</div>
+    <div class="card"><h3>Fotos nachher</h3><div class="pphotos">${ph("nachher")}</div>${photoBtn("nachher")}</div>
+    <div class="card"><h3>Was hast du gemacht?</h3>
+      ${ro ? "" : `<div class="row" style="margin:6px 0 10px">${rec ? `<button class="btn danger" data-act="jRecStop">■ Aufnahme beenden</button><span class="small"><span class="spin"></span> Ich höre zu … sprich ganz normal.</span>` : `<button class="btn pri big" data-act="jRec">🎤 Sprachnotiz aufnehmen</button>`}</div>
+      ${rec ? `<div class="note small" id="j-live">${esc(rec.text || "")}<i class="muted">${esc(rec.interim || "")}</i></div>` : ""}`}
+      ${(j.dictations || []).map((d, i) => `<div class="note small" style="margin-top:8px"><div class="muted">${fmtDate(d.at.slice(0, 10))} ${d.at.slice(11, 16)} Uhr</div><textarea data-jp="dictations.${i}.text" rows="3" ${ro ? "disabled" : ""}>${esc(d.text || "")}</textarea>${ro ? "" : `<button class="btn sm" data-act="jDelDict" data-i="${i}">löschen</button>`}</div>`).join("")}
+      <label class="f" style="margin-top:10px"><span>Notizen (auch Material, Besonderheiten)</span><textarea data-jp="notes" rows="3" placeholder="Du kannst auch hier tippen oder das Mikrofon der Tastatur benutzen." ${ro ? "disabled" : ""}>${esc(j.notes || "")}</textarea></label>
+    </div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3>Arbeitsbericht</h3>${j.status === "claude" ? '<span class="chip info">Claude schreibt den Bericht</span>' : j.status === "bericht" ? '<span class="chip warn">von Claude – bitte prüfen</span>' : ""}</div>
+      <label class="f"><textarea data-jp="report" rows="9" placeholder="Hier steht der fertige Bericht. Claude schreibt ihn aus deiner Sprachnotiz – du kannst ihn danach ändern." ${ro ? "disabled" : ""}>${esc(j.report || "")}</textarea></label>
+      ${ro ? "" : `<div class="row" style="margin-top:8px">${j.status !== "claude" ? `<button class="btn" data-act="jAskClaude">Claude soll den Bericht schreiben</button>` : `<button class="btn" data-act="jCancelClaude">doch selbst schreiben</button>`}</div>`}
+    </div>
+    <div class="card"><h3>Unterschrift Kunde (optional)</h3><div class="psigs">${sig("k", "Kunde bestätigt die Arbeiten")}</div>
+      <label class="f"><span>Name Kunde</span><input data-jp="sign.kName" value="${esc(j.sign?.kName || "")}" ${ro ? "disabled" : ""}></label></div>
+    ${ro ? "" : `<div class="row"><button class="btn pri big" data-act="jFinish">Fertig – Bericht als PDF</button>${!s.isNew ? `<button class="btn danger" data-act="jDelete">Einsatz löschen</button>` : ""}</div>`}
+  </div>`;
+}
+function jAfter() {
+  for (const cv of $$("#sheet canvas.sigpad")) {
+    const ctx = cv.getContext("2d"); ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.strokeStyle = "#111"; let draw = false, used = false;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+    cv.onpointerdown = e => { draw = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); e.preventDefault(); };
+    cv.onpointermove = e => { if (!draw) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); used = true; e.preventDefault(); };
+    cv.onpointerup = () => { draw = false; if (used) UI.sheet.d.sign = { ...(UI.sheet.d.sign || {}), [cv.dataset.sig]: cv.toDataURL("image/png") }; };
+  }
+}
+function jRerender() { const b = $("#sheet .sheet-body"); const st = b ? b.scrollTop : 0; renderSheet(); const nb = $("#sheet .sheet-body"); if (nb) nb.scrollTop = st; }
+async function jSaveDoc(j) { j.updatedAt = new Date().toISOString(); await put("jobs", j.id, j); UI.sheet.isNew = false; }
+/* Sprachnotiz: Chrome wandelt Sprache direkt in Text um */
+function jRecStart() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast("Spracheingabe geht in diesem Browser nicht. Tippe ins Notizfeld und nutze das Mikrofon auf der Tastatur.", 7000); return; }
+  const r = new SR(); r.lang = "de-DE"; r.continuous = true; r.interimResults = true;
+  UI.jrec = { r, text: "", interim: "", started: Date.now(), on: true };
+  r.onresult = e => { let fin = "", tmp = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t; else tmp += t; } if (fin) UI.jrec.text = (UI.jrec.text + " " + fin).trim(); UI.jrec.interim = tmp; const el = $("#j-live"); if (el) el.innerHTML = esc(UI.jrec.text) + ` <i class="muted">${esc(tmp)}</i>`; };
+  r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") { toast("Mikrofon nicht erlaubt – bitte in den Browser-Einstellungen erlauben.", 6000); UI.jrec.on = false; } else if (e.error === "network") { toast("Spracherkennung braucht Internet.", 5000); UI.jrec.on = false; } };
+  r.onend = () => { if (UI.jrec?.on) { try { r.start(); } catch (x) { } } else jRecFinish(); };
+  try { r.start(); } catch (e) { toast("Aufnahme konnte nicht starten: " + e.message); UI.jrec = null; return; }
+  jRerender();
+}
+function jRecStop() { if (!UI.jrec) return; UI.jrec.on = false; try { UI.jrec.r.stop(); } catch (e) { jRecFinish(); } setTimeout(() => { if (UI.jrec) jRecFinish(); }, 1500); }
+async function jRecFinish() {
+  const rec = UI.jrec; if (!rec) return; UI.jrec = null; const text = (rec.text + " " + (rec.interim || "")).trim();
+  const j = UI.sheet?.type === "job" ? UI.sheet.d : null;
+  if (j && text) { j.dictations = [...(j.dictations || []), { at: new Date().toISOString(), sec: Math.round((Date.now() - rec.started) / 1000), text }]; await jSaveDoc(j); toast("Sprachnotiz gespeichert."); }
+  else if (j) toast("Es wurde kein Text erkannt.");
+  if (UI.sheet?.type === "job") jRerender();
+}
+function jNextNo(year) { let max = 0; for (const x of S.jobs.values()) if (x.number?.startsWith("B-" + year + "-")) max = Math.max(max, Number(x.number.split("-")[2]) || 0); return `B-${year}-${String(max + 1).padStart(3, "0")}`; }
+function jPdfName(j) { const k = pCustomerFolder(j.contactId, j.address?.name).slice(0, 30); const dt = (j.date || todayISO()).split("-").reverse().join("_"); return `${j.number}_${dt}_${k}_Arbeitsbericht.pdf`.replace(/\s+/g, "_"); }
+async function jFinish() {
+  const j = UI.sheet.d;
+  if (!j.contactId) { toast("Bitte einen Kunden auswählen."); return; }
+  if (!(j.report || "").trim()) { toast("Der Bericht ist noch leer – schreib ihn selbst oder lass ihn von Claude schreiben."); return; }
+  if (!j.number) j.number = jNextNo((j.date || todayISO()).slice(0, 4));
+  toast("PDF wird erstellt …", 8000);
+  const bytes = await buildJobPdf(j); const name = jPdfName(j);
+  const up = await assets.upload(new File([bytes], name, { type: "application/pdf" }));
+  j.pdf = { id: up.id, name, at: new Date().toISOString() }; j.status = "fertig";
+  await jSaveDoc(j); UI.sheet.d = JSON.parse(JSON.stringify(j)); jRerender(); toast("Arbeitsbericht fertig und gespeichert.");
+}
+async function jShare() {
+  const j = UI.sheet.d; if (!j.pdf) return; const files = [new File([await blobOf(j.pdf)], j.pdf.name, { type: "application/pdf" })];
+  if (navigator.canShare && navigator.canShare({ files })) { try { await navigator.share({ files, title: "Arbeitsbericht " + j.number }); return; } catch (e) { if (e?.name === "AbortError") return; } }
+  await saveFile(files[0].name, files[0], "application/pdf");
+}
+async function buildJobPdf(j) {
+  const { PDFDocument, StandardFonts, rgb } = PDFLib; const c = S.company || {};
+  const pdf = await PDFDocument.create(); const F = await pdf.embedFont(StandardFonts.Helvetica); const B = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const W = 595.28, H = 841.89, L = 50, R = W - 50; const ink = rgb(0.1, 0.12, 0.16), grey = rgb(0.42, 0.45, 0.5), line = rgb(0.78, 0.8, 0.83), fill = rgb(0.95, 0.96, 0.97);
+  let page, y; const txt = (s, x, yy, o = {}) => { const f = o.bold ? B : F, sz = o.size || 9.5; s = pdfSafe(s); page.drawText(s, { x: o.align === "right" ? x - f.widthOfTextAtSize(s, sz) : x, y: yy, size: sz, font: f, color: o.color || ink }); };
+  let logo = null; if (c.logoData) { try { const by = Uint8Array.from(atob(c.logoData.split(",")[1]), ch => ch.charCodeAt(0)); logo = by[0] === 0x89 ? await pdf.embedPng(by) : await pdf.embedJpg(by); } catch (e) { } }
+  const newPage = () => { page = pdf.addPage([W, H]); if (logo) { const s = 42 / logo.height; page.drawImage(logo, { x: R - logo.width * s, y: H - 76, width: logo.width * s, height: 42 }); }
+    txt(c.name || "", L, H - 44, { bold: true, size: 10 }); txt([c.street, `${c.zip || ""} ${c.city || ""}`, c.phone ? "Tel. " + c.phone : ""].filter(Boolean).join(" · "), L, H - 56, { size: 7.5, color: grey });
+    page.drawLine({ start: { x: L, y: H - 84 }, end: { x: R, y: H - 84 }, thickness: 0.6, color: line }); txt(`Arbeitsbericht ${j.number || ""} · ${fmtDate(j.date)}`, L, 26, { size: 7, color: grey }); y = H - 108; };
+  const need = h => { if (y - h < 60) newPage(); };
+  const h2 = s => { need(30); y -= 4; page.drawRectangle({ x: L, y: y - 4, width: R - L, height: 15, color: fill }); txt(s, L + 5, y, { bold: true, size: 10 }); y -= 19; };
+  newPage();
+  txt("Arbeitsbericht", L, y, { bold: true, size: 18 }); y -= 18; if (j.title) { txt(j.title, L, y, { size: 11 }); y -= 18; }
+  const a = j.address || {}; const cust = [jobName(j), a.street, `${a.zip || ""} ${a.city || ""}`.trim()].filter(Boolean).join(", "); const h = jobHours(j);
+  const kv = [["Kunde", cust], ["Einsatzort", j.site || cust], ["Datum", fmtDate(j.date)], ...(j.start ? [["Arbeitszeit", `${j.start}–${j.end || ""} Uhr${j.pause ? `, ${j.pause} Min. Pause` : ""}${h != null ? ` = ${fmtNum(h)} Std.` : ""}`]] : []), ["Ausgeführt von", c.owner || c.name || ""], ...(j.saleId && S.sales.get(j.saleId)?.number ? [["Bezug", (S.sales.get(j.saleId).kind === "angebot" ? "Angebot " : "Rechnung ") + S.sales.get(j.saleId).number]] : [])];
+  for (const [k, v] of kv) { const ls = wrap(v, F, 9.5, R - L - 110); need(13 * ls.length); txt(k, L, y, { size: 8.5, color: grey }); ls.forEach((ln, i) => txt(ln, L + 110, y - i * 12)); y -= 12 * ls.length + 2; }
+  h2("Ausgeführte Arbeiten");
+  for (const ln of wrap(j.report || "", F, 10, R - L - 6)) { need(14); txt(ln, L + 3, y, { size: 10 }); y -= 13.5; }
+  const photos = (j.photos || []).filter(p => p.id);
+  for (const kind of ["vorher", "nachher"]) {
+    const list = photos.filter(p => p.kind === kind); if (!list.length) continue; const cw = (R - L - 14) / 2, chh = 200; need(chh + 60); h2(kind === "vorher" ? "Fotos vorher" : "Fotos nachher");
+    for (let i = 0; i < list.length; i++) {
+      if (i % 2 === 0) need(chh + 26);
+      try { const b = await blobOf(list[i]); const bm = await createImageBitmap(b); const k = Math.min(1, 1400 / Math.max(bm.width, bm.height)); const cv = document.createElement("canvas"); cv.width = bm.width * k; cv.height = bm.height * k; cv.getContext("2d").drawImage(bm, 0, 0, cv.width, cv.height);
+        const img = await pdf.embedJpg(new Uint8Array(await (await new Promise(r => cv.toBlob(r, "image/jpeg", 0.8))).arrayBuffer())); const s = Math.min(cw / img.width, chh / img.height);
+        const x = L + (i % 2) * (cw + 14); page.drawImage(img, { x, y: y - img.height * s, width: img.width * s, height: img.height * s }); if (list[i].cap) txt(list[i].cap.slice(0, 60), x, y - chh - 11, { size: 8, color: grey });
+      } catch (e) { console.warn("Foto", e); }
+      if (i % 2 === 1 || i === list.length - 1) y -= chh + 22;
+    }
+  }
+  need(100); y -= 16; const sw = (R - L - 30) / 2;
+  if (j.sign?.k) { try { const img = await pdf.embedPng(Uint8Array.from(atob(j.sign.k.split(",")[1]), ch => ch.charCodeAt(0))); const s = Math.min(sw / img.width, 55 / img.height); page.drawImage(img, { x: L, y: y - 58, width: img.width * s, height: img.height * s }); } catch (e) { } }
+  page.drawLine({ start: { x: L, y: y - 62 }, end: { x: L + sw, y: y - 62 }, thickness: 0.6, color: grey }); txt("Kunde bestätigt die ausgeführten Arbeiten", L, y - 72, { size: 7.5, color: grey }); txt(j.sign?.kName || "", L, y - 83, { size: 8.5 });
+  const pages = pdf.getPages(); pages.forEach((p, i) => p.drawText(pdfSafe(`Seite ${i + 1} von ${pages.length}`), { x: R - 50, y: 26, size: 7, font: F, color: grey }));
+  pdf.setTitle("Arbeitsbericht " + (j.number || "")); pdf.setAuthor(c.name || ""); pdf.setCreator("Labertal Buchhaltung");
+  return await pdf.save();
+}
+function jobTodos() {
+  const out = [];
+  for (const j of S.jobs.values()) { if (j.status === "bericht") out.push(`<a href="#" class="info" data-act="openJob" data-id="${j.id}">${ICON.tool}<div><b>Arbeitsbericht ${esc(jobName(j))} prüfen</b><div class="small muted">Claude hat ihn geschrieben · ${fmtDate(j.date)}</div></div></a>`); }
+  return out;
+}
+
 /* ===================== Sheet ===================== */
 function renderSheet() {
   const s = UI.sheet; const el = $("#sheet");
   if (!s) { el.classList.remove("open"); $("#sheetBg").classList.remove("open"); el.innerHTML = ""; return; }
-  el.innerHTML = s.type === "protoNew" ? sheetProtoNew() : s.type === "protocol" ? sheetProtocol() : s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
+  el.innerHTML = s.type === "job" ? sheetJob() : s.type === "protoNew" ? sheetProtoNew() : s.type === "protocol" ? sheetProtocol() : s.type === "trip" ? sheetTrip() : s.type === "sale" ? sheetSale() : s.type === "voucher" ? sheetVoucher() : s.type === "contact" ? sheetContact() : s.type === "asset" ? sheetAsset() : s.type === "bank" ? sheetBank() : s.type === "pay" ? sheetPay() : "";
   el.classList.add("open"); $("#sheetBg").classList.add("open");
-  if (s.type === "protocol") pAfter();
+  if (s.type === "protocol") pAfter(); if (s.type === "job") jAfter();
+  labelTables(el);
 }
-function closeSheet() { UI.sheet = null; renderSheet(); }
+function closeSheet() {
+  const s = UI.sheet; if (UI.jrec) { UI.jrec.on = false; try { UI.jrec.r.stop(); } catch (e) { } UI.jrec = null; }
+  // Einsätze und Protokolle beim Schließen automatisch sichern, damit auf der Baustelle nichts verloren geht
+  if (s?.type === "job" && s.d.status !== "fertig" && (!s.isNew || s.d.contactId || s.d.title || s.d.notes || (s.d.photos || []).length)) put("jobs", s.d.id, { ...s.d, updatedAt: new Date().toISOString() }).catch(() => { });
+  if (s?.type === "protocol" && s.d.status !== "fertig" && (!s.isNew || s.d.contactId)) put("protocols", s.d.id, { ...s.d, updatedAt: new Date().toISOString() }).catch(() => { });
+  UI.sheet = null; renderSheet(); }
 function sheetPay() {
   const p = UI.sheet; const d = S.sales.get(p.id);
   return `<div class="sheet-head"><h2>Zahlung erfassen: ${esc(d.number)}</h2><button class="btn" data-act="closeSheet">Abbrechen</button></div>
@@ -2139,6 +2357,21 @@ document.addEventListener("click", async e => {
     switch (act) {
       case "stab": UI.salesTab = el.dataset.tab; render(); break;
       case "newProto": UI.sheet = { type: "protoNew" }; renderSheet(); break;
+      case "newJob": UI.sheet = { type: "job", d: newJob(), isNew: true }; renderSheet(); break;
+      case "openJob": { const j = S.jobs.get(id); if (j) { UI.sheet = { type: "job", d: JSON.parse(JSON.stringify(j)) }; renderSheet(); } break; }
+      case "jSave": await jSaveDoc(UI.sheet.d); toast("Gespeichert."); jRerender(); break;
+      case "jRec": jRecStart(); break;
+      case "jRecStop": jRecStop(); break;
+      case "jDelPhoto": { if (!confirmInline(el, "Foto entfernen?")) break; UI.sheet.d.photos.splice(Number(el.dataset.i), 1); await jSaveDoc(UI.sheet.d); jRerender(); break; }
+      case "jDelDict": { if (!confirmInline(el, "Sprachnotiz löschen?")) break; UI.sheet.d.dictations.splice(Number(el.dataset.i), 1); await jSaveDoc(UI.sheet.d); jRerender(); break; }
+      case "jSigClear": { UI.sheet.d.sign = { ...(UI.sheet.d.sign || {}) }; delete UI.sheet.d.sign[el.dataset.k]; jRerender(); break; }
+      case "jAskClaude": { const j = UI.sheet.d; if (!j.contactId) { toast("Bitte zuerst den Kunden auswählen."); break; } if (!(j.dictations || []).length && !(j.notes || "").trim()) { toast("Nimm erst eine Sprachnotiz auf oder schreib ein paar Stichpunkte."); break; } j.status = "claude"; await jSaveDoc(j); jRerender(); toast("Claude schreibt den Bericht beim nächsten Check – oder sag ihm einfach „Bericht schreiben“.", 6000); break; }
+      case "jCancelClaude": UI.sheet.d.status = "entwurf"; await jSaveDoc(UI.sheet.d); jRerender(); break;
+      case "jFinish": await jFinish(); break;
+      case "jShare": await jShare(); break;
+      case "jReopen": UI.sheet.d.status = "entwurf"; await jSaveDoc(UI.sheet.d); jRerender(); break;
+      case "jView": { const p = UI.sheet.d.photos[Number(el.dataset.i)]; if (p) window.open("_blob/" + p.id, "_blank"); break; }
+      case "jDelete": { if (!confirmInline(el, "Einsatz wirklich löschen?")) break; await del("jobs", UI.sheet.d.id); UI.sheet = null; renderSheet(); toast("Einsatz gelöscht."); break; }
       case "protoTpl": { const d = newProtocol(el.dataset.k); UI.sheet = { type: "protocol", d, isNew: true }; renderSheet(); break; }
       case "openProto": { const d = S.protocols.get(id); if (d) { UI.sheet = { type: "protocol", d: JSON.parse(JSON.stringify(d)) }; renderSheet(); } break; }
       case "pChk": { const d = UI.sheet.d; d.checks = d.checks || {}; d.checks[el.dataset.k] = d.checks[el.dataset.k] === el.dataset.v ? "" : el.dataset.v; pRerender(); break; }
@@ -2153,7 +2386,7 @@ document.addEventListener("click", async e => {
       case "pReopen": { const d = UI.sheet.d; d.status = "entwurf"; await pSaveDoc(d); pRerender(); toast("Wieder offen – nach Änderungen nochmal auf „Fertig“ tippen, dann gibt es ein neues PDF."); break; }
       case "pShare": await pShare(false); break;
       case "pShareSale": await pShare(true); break;
-      case "pDelete": { if (!confirmInline(el, "Protokoll wirklich löschen?")) break; await del("protocols", UI.sheet.d.id); closeSheet(); toast("Protokoll gelöscht."); break; }
+      case "pDelete": { if (!confirmInline(el, "Protokoll wirklich löschen?")) break; await del("protocols", UI.sheet.d.id); UI.sheet = null; renderSheet(); toast("Protokoll gelöscht."); break; }
       case "vtab": UI.vTab = el.dataset.tab; if (route() !== "belege") location.hash = "belege"; else render(); break;
       case "btab": UI.bankTab = el.dataset.tab; render(); break;
       case "newSale": newSale(el.dataset.kind); break;
@@ -2252,6 +2485,7 @@ function confirmInline(btn, msg) { if (btn.dataset.armed === "1") return true; c
 document.addEventListener("input", e => {
   const el = e.target;
   if (el.dataset.inp === "search") { UI.search = el.value; scheduleRender(); return; }
+  if (UI.sheet?.type === "job" && el.dataset.jp && el.tagName !== "SELECT") { pSet(UI.sheet.d, el.dataset.jp, el.value); if (/^(start|end|pause)$/.test(el.dataset.jp)) { const h = jobHours(UI.sheet.d); const x = $("#j-hours"); if (x) x.value = h != null ? fmtNum(h) + " Std." : ""; } return; }
   if (UI.sheet?.type === "protocol" && el.dataset.pp && el.tagName !== "SELECT") { pSet(UI.sheet.d, el.dataset.pp, el.value); pLiveUpdate(el.dataset.pp); return; }
   if (UI.sheet?.type === "sale" && (el.dataset.it != null)) { const d = readSaleForm(); const i = Number(el.dataset.it); const s = $("#it-sum-" + i); if (s) s.textContent = eur(itemNet(d.items[i])); $("#s-totals").innerHTML = totalsHtml(d, salesTotals(d)); }
 });
@@ -2263,6 +2497,16 @@ document.addEventListener("change", async e => {
     if (el.dataset.pp === "contactId") { const c = S.contacts.get(el.value); d.address = c ? { name: c.name, street: c.street, zip: c.zip, city: c.city } : {}; if (!d.sign?.kName && c) d.sign = { ...(d.sign || {}), kName: unent(c.name) }; d.saleId = ""; }
     if (el.dataset.pp.startsWith("steps.") && d.status === "fertig") await pSaveDoc(d);
     if (el.tagName === "SELECT" || el.dataset.pp === "date") pRerender(); return;
+  }
+  if (UI.sheet?.type === "job" && el.dataset.jp) {
+    const j = UI.sheet.d; pSet(j, el.dataset.jp, el.value);
+    if (el.dataset.jp === "contactId") { const c = S.contacts.get(el.value); j.address = c ? { name: c.name, street: c.street, zip: c.zip, city: c.city } : {}; if (c && !j.sign?.kName) j.sign = { ...(j.sign || {}), kName: unent(c.name) }; j.saleId = ""; jRerender(); }
+    else if (el.tagName === "SELECT") jRerender(); return;
+  }
+  if (UI.sheet?.type === "job" && el.dataset.jphoto) {
+    const files = [...el.files]; el.value = ""; const j = UI.sheet.d; const kind = el.dataset.jphoto; toast(files.length > 1 ? `${files.length} Fotos werden hochgeladen …` : "Foto wird hochgeladen …", 15000);
+    for (const f of files) { const small = await shrinkImage(f); const up = await assets.upload(small); j.photos = [...(j.photos || []), { id: up.id, name: f.name, type: small.type, kind, at: new Date().toISOString() }]; }
+    await jSaveDoc(j); jRerender(); toast("Gespeichert."); return;
   }
   if (UI.sheet?.type === "protocol" && el.dataset.pphoto != null) {
     const files = [...el.files]; el.value = ""; const d = UI.sheet.d; const ci = el.dataset.pphoto; toast("Foto wird hochgeladen …");
