@@ -70,6 +70,17 @@ main{padding:calc(24px + env(safe-area-inset-top)) clamp(16px,3vw,36px) 80px;max
 .list,.tbl-wrap,.stat,.morelist a,.todo a{box-shadow:0 1px 2px rgba(16,24,40,.04)}
 .btn{transition:background .15s,border-color .15s,transform .05s}.btn:active{transform:scale(.97)}
 .only-m{display:none}
+#pdfv{display:none;position:fixed;inset:0;z-index:200;background:#3b3f46;flex-direction:column}
+#pdfv.open{display:flex}
+body.pv-on{overflow:hidden}
+.pv-bar{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.pv-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.pv-zoom{display:flex;align-items:center;gap:4px}.pv-zoom span{min-width:46px;text-align:center;font-size:13px;color:var(--muted)}
+.pv-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;padding:10px 0 calc(20px + env(safe-area-inset-bottom))}
+.pv-pages{width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 8px}
+.pv-page{width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);border-radius:2px}
+.pv-load{color:#fff;padding:40px;text-align:center}
+@media (max-width:820px){.pv-bar .btn.sm{padding:7px 10px}.pv-bar [data-act=pvSave]{font-size:13px}}
 .grid{display:grid;gap:14px}
 .tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .tile .lbl{color:var(--muted);font-size:13px}
@@ -869,7 +880,8 @@ function sheetSale() {
   const pays = (d.payments || []).map(p => `<li>${fmtDate(p.date)} – ${eur(p.amount)}${p.note ? " · " + esc(p.note) : ""}</li>`).join("");
   return `<div class="sheet-head"><h2>${kindL} ${esc(d.number || "(Entwurf)")}</h2>${salesChip(d)}
     ${!locked ? `<button class="btn" data-act="saveSale">Entwurf speichern</button><button class="btn pri" data-act="finalizeSale">${d.kind === "angebot" ? "Angebot abschließen" : "Rechnung festschreiben"}</button>` : ""}
-    ${locked ? `<button class="btn pri" data-act="pdfSale">PDF herunterladen</button>` : `<button class="btn" data-act="pdfSale">Vorschau-PDF</button>`}
+    <button class="btn ${locked ? "pri" : ""}" data-act="viewSale">Ansehen</button>
+    <button class="btn" data-act="pdfSale">${locked ? "PDF speichern" : "PDF speichern"}</button>
     <button class="btn" data-act="closeSheet">Schließen</button></div>
   <div class="sheet-body">
     ${locked && d.kind !== "angebot" ? `<div class="note small">Diese Rechnung ist festgeschrieben und kann nicht mehr geändert werden (GoBD). Für Korrekturen: stornieren und neu schreiben.</div>` : ""}
@@ -1816,6 +1828,51 @@ async function downloadSalePdf(d, opts = {}) {
   await saveFile(name, bytes, "application/pdf");
 }
 
+/* ===================== PDF-Ansicht in der App (ohne Herunterladen) ===================== */
+const PV = { doc: null, zoom: 1, bytes: null, name: "", pinch: null };
+async function openPdf(src, title, name) {
+  let bytes = src instanceof Blob ? new Uint8Array(await src.arrayBuffer()) : src instanceof Uint8Array ? src : new Uint8Array(src);
+  PV.bytes = bytes; PV.name = name || (title || "Dokument").replace(/[^\wäöüÄÖÜß-]+/g, "_") + ".pdf"; PV.zoom = 1;
+  let el = $("#pdfv"); if (!el) { el = document.createElement("div"); el.id = "pdfv"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="pv-bar"><button class="btn" data-act="pvClose" aria-label="Schließen">✕</button><b class="pv-title">${esc(title || "PDF")}</b>
+    <div class="pv-zoom"><button class="btn sm" data-act="pvZoom" data-z="-1" aria-label="Kleiner">−</button><span id="pv-pct">100 %</span><button class="btn sm" data-act="pvZoom" data-z="1" aria-label="Größer">+</button></div>
+    <button class="btn sm" data-act="pvSave">Teilen</button></div>
+    <div class="pv-scroll" id="pv-scroll"><div class="pv-pages" id="pv-pages"><div class="pv-load"><span class="spin"></span> PDF wird geladen …</div></div></div>`;
+  el.classList.add("open"); document.body.classList.add("pv-on");
+  try { history.pushState({ pv: 1 }, ""); } catch (e) { }
+  try {
+    const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise; PV.doc = doc;
+    const box = $("#pv-pages"); box.innerHTML = ""; const w = Math.min(2400, Math.round(($("#pv-scroll").clientWidth || 400) * (window.devicePixelRatio || 1) * 2));
+    for (let n = 1; n <= doc.numPages; n++) {
+      const pg = await doc.getPage(n); const vp0 = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: w / vp0.width });
+      const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height; cv.className = "pv-page"; box.appendChild(cv);
+      await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+    }
+    pvBindPinch();
+  } catch (e) { $("#pv-pages").innerHTML = `<div class="empty">Das PDF ließ sich nicht anzeigen (${esc(e.message || e)}). Tippe auf „Teilen / Speichern“.</div>`; }
+}
+function pvSetZoom(z, cx, cy) {
+  const sc = $("#pv-scroll"), box = $("#pv-pages"); if (!sc || !box) return; const old = PV.zoom; z = Math.max(1, Math.min(5, z)); if (Math.abs(z - old) < 0.001) return;
+  const r = sc.getBoundingClientRect(); const px = (cx ?? r.left + r.width / 2) - r.left, py = (cy ?? r.top + r.height / 2) - r.top;
+  const ax = (sc.scrollLeft + px) / old, ay = (sc.scrollTop + py) / old;
+  PV.zoom = z; box.style.width = (z * 100) + "%"; sc.scrollLeft = ax * z - px; sc.scrollTop = ay * z - py;
+  const p = $("#pv-pct"); if (p) p.textContent = Math.round(z * 100) + " %";
+}
+function pvBindPinch() {
+  const sc = $("#pv-scroll"); if (!sc || sc.dataset.bound) return; sc.dataset.bound = 1; let lastTap = 0;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  sc.addEventListener("touchstart", e => { if (e.touches.length === 2) { PV.pinch = { d: dist(e.touches), z: PV.zoom }; e.preventDefault(); }
+    else if (e.touches.length === 1) { const now = Date.now(); if (now - lastTap < 300) { const t = e.touches[0]; pvSetZoom(PV.zoom > 1.2 ? 1 : 2.2, t.clientX, t.clientY); e.preventDefault(); } lastTap = now; } }, { passive: false });
+  sc.addEventListener("touchmove", e => { if (e.touches.length === 2 && PV.pinch) { const t = e.touches; pvSetZoom(PV.pinch.z * dist(t) / PV.pinch.d, (t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2); e.preventDefault(); } }, { passive: false });
+  sc.addEventListener("touchend", e => { if (e.touches.length < 2) PV.pinch = null; });
+  sc.addEventListener("wheel", e => { if (e.ctrlKey) { e.preventDefault(); pvSetZoom(PV.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX, e.clientY); } }, { passive: false });
+}
+function pvClose(fromHistory) { const el = $("#pdfv"); if (!el || !el.classList.contains("open")) return; el.classList.remove("open"); el.innerHTML = ""; document.body.classList.remove("pv-on"); PV.doc?.destroy?.(); PV.doc = null; PV.bytes = null; if (!fromHistory) { try { if (history.state?.pv) history.back(); } catch (e) { } } }
+window.addEventListener("popstate", () => { if ($("#pdfv")?.classList.contains("open")) pvClose(true); });
+async function salePdfBlob(d) {
+  if (d.source === "lexware" && d.files?.length) { const f = d.files[d.files.length - 1]; const r = await fetch("_blob/" + f.id); if (r.ok) return await r.blob(); }
+  return new Blob([await buildSalePdf(d)], { type: "application/pdf" });
+}
 /* ===================== Datensicherung & CSV ===================== */
 async function backup() {
   const data = { exportedAt: new Date().toISOString(), company: S.company }; for (const c of COLS) data[c] = [...S[c].values()];
@@ -1993,7 +2050,7 @@ function sheetProtocol() {
   const photos = (d.photos || []).map((p, i) => `<div class="pphoto"><img src="_blob/${esc(p.id)}" alt="" loading="lazy"><input data-pp="photos.${i}.cap" value="${esc(p.cap || "")}" placeholder="Beschreibung" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="btn sm" data-act="pDelPhoto" data-i="${i}">×</button>`}</div>`).join("");
   const sig = (k, label) => `<div class="psig"><div class="small muted">${label}</div>${d.sign?.[k] ? `<img src="${d.sign[k]}" alt="Unterschrift">${ro ? "" : `<button class="btn sm" data-act="pSigClear" data-k="${k}">neu unterschreiben</button>`}` : ro ? "<i class='small muted'>keine</i>" : `<canvas class="sigpad" data-sig="${k}" width="600" height="180"></canvas><button class="btn sm" data-act="pSigClear" data-k="${k}">löschen</button>`}</div>`;
   return `<div class="sheet-head"><h2>${esc(t.label || "Prüfprotokoll")}${d.number ? " " + esc(d.number) : ""}</h2>
-    ${ro ? `<button class="btn pri" data-act="pShare">Teilen / PDF</button>${d.saleId ? `<button class="btn" data-act="pShareSale">mit Rechnung teilen</button>` : ""}<button class="btn" data-act="pReopen">Bearbeiten</button>` : `<button class="btn" data-act="pSave">Speichern</button><button class="btn pri" data-act="pFinish">Fertig – PDF erstellen</button>`}
+    ${ro ? `<button class="btn pri" data-act="pView">Ansehen</button><button class="btn" data-act="pShare">Teilen</button>${d.saleId ? `<button class="btn" data-act="pShareSale">mit Rechnung teilen</button>` : ""}<button class="btn" data-act="pReopen">Bearbeiten</button>` : `<button class="btn" data-act="pSave">Speichern</button><button class="btn pri" data-act="pFinish">Fertig – PDF erstellen</button>`}
     <button class="btn" data-act="closeSheet">Schließen</button></div>
   <div class="sheet-body">
     ${prob.length ? `<div class="card note bad"><b>${prob.length === 1 ? "1 Punkt" : prob.length + " Punkte"} nicht in Ordnung:</b><ul class="small">${prob.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
@@ -2209,7 +2266,7 @@ function sheetJob() {
   const rec = UI.jrec;
   const sig = (k, label) => `<div class="psig"><div class="small muted">${label}</div>${j.sign?.[k] ? `<img src="${j.sign[k]}" alt="Unterschrift">${ro ? "" : `<button class="btn sm" data-act="jSigClear" data-k="${k}">neu</button>`}` : ro ? "<i class='small muted'>keine</i>" : `<canvas class="sigpad" data-sig="${k}" width="600" height="180"></canvas>`}</div>`;
   return `<div class="sheet-head"><h2>Einsatz${j.title ? ": " + esc(j.title) : ""}</h2>
-    ${ro ? `<button class="btn pri" data-act="jShare">Bericht teilen</button><button class="btn" data-act="jReopen">Bearbeiten</button>` : `<button class="btn" data-act="jSave">Speichern</button>`}
+    ${ro ? `<button class="btn pri" data-act="jView2">Ansehen</button><button class="btn" data-act="jShare">Teilen</button><button class="btn" data-act="jReopen">Bearbeiten</button>` : `<button class="btn" data-act="jSave">Speichern</button>`}
     <button class="btn" data-act="closeSheet">Schließen</button></div>
   <div class="sheet-body">
     <div class="card"><div class="form">
@@ -2431,6 +2488,12 @@ document.addEventListener("click", async e => {
       case "rmItem": readSaleForm(); UI.sheet.d.items.splice(Number(el.dataset.i), 1); renderSheet(); break;
       case "saveSale": await saveSale(false); break;
       case "finalizeSale": { const d = readSaleForm(); const err = validateSale(d); if (err) { toast(err); break; } UI.sheet.confirm = true; if (!confirmInline(el, d.kind === "angebot" ? "Angebot abschließen und Nummer vergeben?" : "Festschreiben? Danach ist keine Änderung mehr möglich.")) break; await saveSale(true); break; }
+      case "viewSale": { const d = UI.sheet.d.status === "entwurf" ? readSaleForm() : UI.sheet.d; toast("PDF wird erstellt …", 1500); await openPdf(await salePdfBlob(d), `${d.kind === "angebot" ? "Angebot" : "Rechnung"} ${d.number || "Entwurf"} – ${salesName(d)}`, (d.number || "Entwurf") + "_" + salesName(d).replace(/[^\wäöüÄÖÜß-]+/g, "_").slice(0, 40) + ".pdf"); break; }
+      case "pvClose": pvClose(); break;
+      case "pvZoom": pvSetZoom(PV.zoom * (el.dataset.z === "1" ? 1.25 : 0.8)); break;
+      case "pvSave": { const f = new File([PV.bytes], PV.name, { type: "application/pdf" }); if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: PV.name }); break; } catch (x) { if (x?.name === "AbortError") break; } } await saveFile(PV.name, f, "application/pdf"); break; }
+      case "pView": { const d = UI.sheet.d; if (d.pdf) await openPdf(await blobOf(d.pdf), "Prüfprotokoll " + (d.number || ""), d.pdf.name); break; }
+      case "jView2": { const j = UI.sheet.d; if (j.pdf) await openPdf(await blobOf(j.pdf), "Arbeitsbericht " + (j.number || ""), j.pdf.name); break; }
       case "pdfSale": { const d = UI.sheet.d.status === "entwurf" ? readSaleForm() : UI.sheet.d; await downloadSalePdf(d, { fresh: e.shiftKey }); break; }
       case "xmlSale": { const d = UI.sheet.d; await saveFile(`${d.number}_E-Rechnung.zip`, zipStore([[`${d.number}_factur-x.xml`, new TextEncoder().encode(ciiXml(d))]]), "application/zip"); toast("Die XML-Datei liegt in der ZIP-Datei."); break; }
       case "paySale": UI.sheet = { type: "pay", id: UI.sheet.d.id, back: UI.sheet }; renderSheet(); break;
